@@ -1,0 +1,6 @@
+@TripDrop.Api_HostAddress = http://localhost:5206
+
+GET {{TripDrop.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
