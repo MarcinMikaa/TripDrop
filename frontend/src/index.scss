@@ -1,0 +1,39 @@
+:root {
+  --bg:      #ffffff;
+  --text:    #111111;
+  --accent:  #2563eb;
+  --border:  #d1d5db;
+  --radius:  6px;
+
+  --header-h: 52px;
+
+  font-family: system-ui, sans-serif;
+  font-size: 16px;
+  color: var(--text);
+  background: var(--bg);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100svh;
+}
+
+#root {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+button {
+  cursor: pointer;
+}
