@@ -6,4 +6,13 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Application\TripDrop.Application.csproj" />
+    <ProjectReference Include="..\TripDrop.Domain\TripDrop.Domain.csproj" />
+  </ItemGroup>
+
 </Project>

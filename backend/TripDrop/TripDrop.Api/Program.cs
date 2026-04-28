@@ -1,4 +1,9 @@
 
+using Microsoft.EntityFrameworkCore;
+using TripDrop.Domain.Repositories;
+using TripDrop.Infrastructure.Persistence;
+using TripDrop.Infrastructure.Repositories;
+
 namespace TripDrop.Api
 {
     public class Program
@@ -6,6 +11,18 @@ namespace TripDrop.Api
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+            builder.Services.AddDbContext<TripDropDbContext>(options =>
+                options.UseNpgsql(connectionString));
+
+            builder.Services.AddMediatR(cfg =>
+            {
+                cfg.RegisterServicesFromAssembly(typeof(TripDrop.Application.Trips.CreateTripCommand).Assembly);
+            });
+
+            builder.Services.AddScoped<ITripRepository, TripRepository>();
 
             builder.Services.AddCors(options =>
             {

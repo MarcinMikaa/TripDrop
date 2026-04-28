@@ -4,14 +4,22 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>33425033-50e7-4b1d-8d36-c440adab0114</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="MediatR" Version="12.4.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.*">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Application\TripDrop.Application.csproj" />
     <ProjectReference Include="..\TripDrop.Domain\TripDrop.Domain.csproj" />
+    <ProjectReference Include="..\TripDrop.Infrastructure\TripDrop.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
