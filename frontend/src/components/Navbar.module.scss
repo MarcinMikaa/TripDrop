@@ -4,6 +4,7 @@
   display: flex;
   align-items: center;
   padding: 0 16px;
+  background: #fff;
 }
 
 .nav {
@@ -19,10 +20,105 @@
   text-decoration: none;
 }
 
-.links {
+.links, .auth {
   display: flex;
   list-style: none;
   gap: 4px;
+}
+
+.auth {
+  margin-left: auto;
+  position: relative;
+}
+
+.userMenu {
+  position: relative;
+}
+
+.userButton {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: background 0.2s;
+
+  &:hover {
+    background: #f3f4f6;
+  }
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  background: var(--accent);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.username {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.arrow {
+  transition: transform 0.2s;
+  color: #9ca3af;
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  min-width: 160px;
+  list-style: none;
+  padding: 6px;
+  z-index: 1000;
+}
+
+.dropdownItem {
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  color: var(--text);
+  cursor: pointer;
+  border-radius: 4px;
+
+  &:hover {
+    background: #f9fafb;
+    color: var(--accent);
+  }
+}
+
+.divider {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 4px 0;
+}
+
+.logout {
+  color: #ef4444;
+  &:hover {
+    background: #fef2f2;
+    color: #b91c1c;
+  }
+}
+
+.authLinks {
+  display: flex;
+  list-style: none;
+  gap: 8px;
 }
 
 .link {

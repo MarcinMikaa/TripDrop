@@ -16,17 +16,19 @@ namespace TripDrop.Domain.Entities
         public double StartLongitude { get; private set; }
 
         public Guid OwnerId { get; private set; }
+        public virtual User Owner { get; private set; } = null!;
         public DateTime CreatedAt { get; private set; }
 
         private Trip() { }
 
-        public Trip(string name, double lat, double lon, Guid ownerId)
+        public Trip(string name, double lat, double lon, Guid ownerId, string? description = null)
         {
             Id = Guid.NewGuid();
             Name = name;
             StartLatitude = lat;
             StartLongitude = lon;
             OwnerId = ownerId;
+            Description = description;
             CreatedAt = DateTime.UtcNow;
         }
     }

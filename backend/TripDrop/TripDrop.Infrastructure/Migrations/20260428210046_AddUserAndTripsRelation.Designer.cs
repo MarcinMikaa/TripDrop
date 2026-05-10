@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TripDrop.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using TripDrop.Infrastructure.Persistence;
 namespace TripDrop.Infrastructure.Migrations
 {
     [DbContext(typeof(TripDropDbContext))]
-    partial class TripDropDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260428210046_AddUserAndTripsRelation")]
+    partial class AddUserAndTripsRelation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -62,6 +65,10 @@ namespace TripDrop.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("text");
 
