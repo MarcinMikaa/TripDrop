@@ -1,63 +1,226 @@
 .page {
-  padding: 48px 16px;
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-.title {
-  font-size: 2rem;
-  font-weight: 700;
-  margin-bottom: 12px;
-}
-
-.subtitle {
-  color: #6b7280;
-  margin-bottom: 32px;
-  line-height: 1.6;
-}
-
-.actions {
+  flex: 1;
   display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 48px;
+  flex-direction: column;
 }
 
-.btnPrimary {
-  padding: 10px 20px;
-  background: var(--accent);
+/* ===== SECTION 1 - HERO ===== */
+.hero {
+  background: var(--navy);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  height: calc(100svh - var(--header-h));
+}
+
+.heroContent {
+  max-width: 640px;
+  text-align: center;
+}
+
+.heroTitle {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(2.4rem, 5vw, 3.8rem);
+  font-weight: 700;
   color: #fff;
-  border-radius: var(--radius);
-  font-weight: 500;
+  line-height: 1.15;
+  margin-bottom: 24px;
+  letter-spacing: -0.01em;
 }
 
-.btnSecondary {
-  padding: 10px 20px;
-  background: #f3f4f6;
-  color: var(--text);
-  border-radius: var(--radius);
-  font-weight: 500;
+.heroSubtitle {
+  font-size: clamp(0.95rem, 2vw, 1.1rem);
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.7;
+  margin-bottom: 42px;
+  font-weight: 300;
 }
 
-.features {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+.heroActions {
+  display: flex;
   gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
-.featureCard {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
+.btnSun {
+  position: relative;
+  padding: 12px 32px;
+  background: none;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  color: #fff;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  overflow: visible;
+  transition: background 0.3s, border-color 0.3s, color 0.3s;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 8px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+
+  &:hover {
+    background: #FFD93D;
+    border-color: #FFD93D;
+    color: #574337;
+  }
+
+  &:hover .sunRays {
+    opacity: 1;
+  }
 }
 
-.featureTitle {
+.sunRays {
+  position: absolute;
+  inset: -28px;
+  opacity: 0;
+  transition: opacity 0.35s;
+  pointer-events: none;
+  border-radius: 8px;
+
+  span {
+    position: absolute;
+    display: block;
+    background: #FFD93D;
+    border-radius: 4px;
+    transform-origin: center;
+    animation: none;
+  }
+}
+
+.btnSun:hover .sunRays span {
+  animation: rayShoot 0.55s ease-out forwards;
+}
+
+.sunRays span:nth-child(1)  { width: 3px; height: 18px; top: 0;      left: 50%; transform: translateX(-50%) scaleY(0);  animation-delay: 0s;    --tx: 0px;  --ty: -1px; }
+.sunRays span:nth-child(2)  { width: 3px; height: 18px; top: 14%;    right: 4%; transform: rotate(45deg) scaleY(0);    animation-delay: 0.04s; --tx: 1px;  --ty: -1px; }
+.sunRays span:nth-child(3)  { width: 18px; height: 3px; top: 50%;    right: 0;  transform: translateY(-50%) scaleX(0); animation-delay: 0.08s; --tx: 1px;  --ty: 0px;  }
+.sunRays span:nth-child(4)  { width: 3px; height: 18px; bottom: 14%; right: 4%; transform: rotate(-45deg) scaleY(0);   animation-delay: 0.12s; --tx: 1px;  --ty: 1px;  }
+.sunRays span:nth-child(5)  { width: 3px; height: 18px; bottom: 0;   left: 50%; transform: translateX(-50%) scaleY(0); animation-delay: 0.16s; --tx: 0px;  --ty: 1px;  }
+.sunRays span:nth-child(6)  { width: 3px; height: 18px; bottom: 14%; left: 4%;  transform: rotate(45deg) scaleY(0);    animation-delay: 0.20s; --tx: -1px; --ty: 1px;  }
+.sunRays span:nth-child(7)  { width: 18px; height: 3px; top: 50%;    left: 0;   transform: translateY(-50%) scaleX(0); animation-delay: 0.24s; --tx: -1px; --ty: 0px;  }
+.sunRays span:nth-child(8)  { width: 3px; height: 18px; top: 14%;    left: 4%;  transform: rotate(-45deg) scaleY(0);   animation-delay: 0.28s; --tx: -1px; --ty: -1px; }
+
+@keyframes rayShoot {
+  0%   { transform: scale(0);   opacity: 0; }
+  40%  { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1) translate(var(--tx, 0), var(--ty, 0)); opacity: 0.85; }
+}
+
+.btnOutline {
+  padding: 12px 32px;
+  background: none;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  color: #fff;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: background 0.18s, border-color 0.18s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: #fff;
+  }
+}
+
+/* section 3 presentatnion */
+.presentation {
+  background: var(--navy);
+  height: calc(100svh - var(--header-h));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-top: 1.5px solid rgba(255, 255, 255, 0.08);
+}
+
+.presentationTitle {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(2rem, 4vw, 3rem);
   font-weight: 600;
-  margin-bottom: 6px;
+  color: #fff;
+  text-align: center;
 }
 
-.featureDesc {
-  font-size: 0.875rem;
-  color: #6b7280;
+/* Section 2 cta*/
+.cta {
+  background: #8DBDD6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 48px;
+  height: calc(100svh - var(--header-h));
+}
+
+.ctaInner {
+  max-width: 700px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 52px;
+}
+
+.ctaTitle {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 600;
+  color: #fff;
+  text-align: center;
+}
+
+.ctaRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 36px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.btnRegister {
+  padding: 16px 52px;
+  background: #fff;
+  border: none;
+  border-radius: 12px;
+  color: #374C57;
+  font-size: 1.05rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  transition: background 0.18s, transform 0.12s;
+
+  &:hover {
+    background: #f0f7fb;
+    transform: translateY(-1px);
+  }
+}
+
+.ctaText {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.1rem;
+  font-weight: 300;
   line-height: 1.5;
+}
+
+.ctaRowBottom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 36px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.ctaTextBottom {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.1rem;
+  font-weight: 300;
+  flex-shrink: 0;
 }

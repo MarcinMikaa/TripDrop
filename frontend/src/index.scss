@@ -1,13 +1,22 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+/* paleta: #D7AA8E #8ABCD6 #8DD6BF #574337 #374C57 */
 :root {
-  --bg:      #ffffff;
-  --text:    #111111;
-  --accent:  #2563eb;
-  --border:  #d1d5db;
-  --radius:  6px;
+  --sand:     #D7AA8E;
+  --sky:      #8ABCD6;
+  --mint:     #8DD6BF;
+  --brown:    #574337;
+  --navy:     #374C57;
 
-  --header-h: 52px;
+  --bg:       #ffffff;
+  --text:     #574337;
+  --accent:   #8ABCD6;
+  --border:   #D7AA8E55;
+  --radius:   10px;
 
-  font-family: system-ui, sans-serif;
+  --header-h: 58px;
+
+  font-family: 'DM Sans', sans-serif;
   font-size: 16px;
   color: var(--text);
   background: var(--bg);
@@ -36,4 +45,5 @@ a {
 
 button {
   cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
 }
