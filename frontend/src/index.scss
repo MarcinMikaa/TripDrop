@@ -1,19 +1,52 @@
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap");
+
+/* paleta: #0A0A0A #F5F2EE #E8E4DE #C8A882 #5B8FA8 */
 :root {
-  --bg:      #ffffff;
-  --text:    #111111;
-  --accent:  #2563eb;
-  --border:  #d1d5db;
-  --radius:  6px;
+  --obsidian: #0a0a0a;
+  --linen: #f5f2ee;
+  --stone: #e8e4de;
+  --amber: #c8a882;
+  --amber-dark: #a8845e;
+  --steel: #5b8fa8;
+  --steel-dark: #3d6f87;
+  --steel-light: #91b0c8;
 
-  --header-h: 52px;
+  --bg: #f5f2ee;
+  --bg-dark: #0a0a0a;
+  --text: #0a0a0a;
+  --text-muted: #6b6560;
+  --text-on-dark: #ffffff;
+  --text-on-dark-muted: rgba(255, 255, 255, 0.6);
 
-  font-family: system-ui, sans-serif;
+  --accent: #c8a882;
+  --accent-dark: #a8845e;
+  --accent-2: #5b8fa8;
+  --accent-2-dark: #3d6f87;
+
+  --border: #e8e4de;
+  --border-subtle: rgba(232, 228, 222, 0.5);
+
+  --radius: 10px;
+  --radius-sm: 6px;
+  --radius-lg: 14px;
+  --black: #000000;
+
+  --header-h: 58px;
+
+  --nav-bg: #0a0a0a;
+  --nav-text: rgba(255, 255, 255, 0.75);
+  --nav-text-active: white;
+  --nav-hover-bg: rgba(255, 255, 255, 0.08);
+
+  font-family: "DM Sans", sans-serif;
   font-size: 16px;
   color: var(--text);
   background: var(--bg);
 }
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -36,4 +69,5 @@ a {
 
 button {
   cursor: pointer;
+  font-family: "DM Sans", sans-serif;
 }
