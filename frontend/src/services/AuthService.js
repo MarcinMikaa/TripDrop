@@ -4,9 +4,7 @@ export const authService = {
   register: async (email, username, password) => {
     const res = await fetch(`${API_BASE}/api/users/register`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, username, password }),
     });
 
@@ -20,9 +18,7 @@ export const authService = {
   login: async (email, password) => {
     const res = await fetch(`${API_BASE}/api/users/login`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
 
@@ -31,16 +27,8 @@ export const authService = {
       throw new Error(errorData.Error || 'Nieprawidłowy email lub hasło.');
     }
 
-    const data = await res.json();
-
-    if (data.token) {
-      localStorage.setItem('jwt_token', data.token);
-    }
-
-    return data;
+    return res.json();
   },
 
-  logout: () => {
-    localStorage.removeItem('jwt_token');
-  },
+  logout: () => {},
 };

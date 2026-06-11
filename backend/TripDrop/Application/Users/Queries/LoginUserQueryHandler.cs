@@ -30,6 +30,9 @@ namespace TripDrop.Application.Users.Queries
 
                 var user = await _userRepository.GetByEmailAsync(cleanEmail, cancellationToken);
 
+                if (user is null)
+                    throw new Exception("Konto istnieje w systemie uwierzytelniania, ale brak profilu użytkownika.");
+
                 return new LoginResponse(session.AccessToken, user.Username);
             }
             catch (GotrueException)

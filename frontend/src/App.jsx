@@ -5,15 +5,16 @@ import TripsPage   from './pages/TripsPage';
 import PlannerPage from './pages/PlannerPage';
 import LoginPage from './pages/LoginPage/LoginPage';
 import RegisterPage from './pages/RegisterPage/RegisterPage';
+import useAuth      from './hooks/useAuth';
 
 const ProtectedRoute = ({ children }) => {
-  const token = localStorage.getItem('jwt_token');
+  const { isAuthenticated, isLoading } = useAuth();
   
-  if (!token) {
-    return <Navigate to="/login" replace />;
+  if (isLoading) {
+    return null;
   }
   
-  return children;
+  return isAuthenticated ? children : <Navigate to="/login" replace />;
 };
 
 function App() {

@@ -36,8 +36,15 @@ namespace TripDrop.Api.Controllers
         {
             try
             {
-                var token = await _mediator.Send(query);
-                return Ok(new { Token = token });
+                var result = await _mediator.Send(query);
+                return Ok(new
+                {
+                    token = result.Token,
+                    user = new
+                    {
+                        username = result.Username
+                    }
+                });
             }
             catch (Exception ex)
             {
