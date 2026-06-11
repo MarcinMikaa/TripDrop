@@ -1,34 +1,67 @@
 .header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
   height: var(--header-h);
-  border-bottom: 1px solid var(--border);
+  background: var(--amber-dark);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   align-items: center;
-  padding: 0 16px;
-  background: #fff;
+  padding: 0 24px;
 }
 
 .nav {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 8px;
   width: 100%;
 }
 
 .logo {
   font-weight: 700;
-  color: var(--text);
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+  color: var(--text-on-dark);
   text-decoration: none;
+  margin-right: 16px;
+  flex-shrink: 0;
 }
 
-.links, .auth {
+.links {
   display: flex;
   list-style: none;
-  gap: 4px;
+  gap: 2px;
 }
 
 .auth {
+  display: flex;
+  align-items: center;
+  list-style: none;
+  gap: 4px;
   margin-left: auto;
   position: relative;
+}
+
+.link {
+  display: inline-block;
+  padding: 5px 12px;
+  color: var(--nav-text);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 400;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s;
+
+  &:hover {
+    color: var(--nav-text-active);
+    background: var(--nav-hover-bg);
+
+  }
+}
+
+.active {
+  color: var(--nav-text-active);
+  font-weight: 500;
 }
 
 .userMenu {
@@ -38,102 +71,110 @@
 .userButton {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   background: none;
   border: none;
-  padding: 4px 8px;
+  padding: 4px 8px 4px 4px;
   cursor: pointer;
-  border-radius: var(--radius);
-  transition: background 0.2s;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s;
 
   &:hover {
-    background: #f3f4f6;
+    background: var(--nav-hover-bg);
   }
 }
 
 .avatar {
-  width: 32px;
-  height: 32px;
-  background: var(--accent);
-  color: white;
+  width: 30px;
+  height: 30px;
+  background: var(--amber);
+  color: var(--obsidian);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
+  flex-shrink: 0;
 }
 
 .username {
+  font-size: 0.9rem;
   font-weight: 500;
-  color: var(--text);
+  color: var(--nav-text-active);
 }
 
 .arrow {
+  font-size: 0.75rem;
   transition: transform 0.2s;
-  color: #9ca3af;
+  color: var(--nav-text);
+}
+
+.arrowOpen {
+  transform: rotate(180deg);
 }
 
 .dropdown {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 6px);
   right: 0;
-  background: white;
-  border: 1px solid var(--border);
+  background: var(--obsidian);
+  border: 1px solid rgba(255, 255, 255, 0.10);
   border-radius: var(--radius);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
   min-width: 160px;
   list-style: none;
-  padding: 6px;
+  padding: 4px;
   z-index: 1000;
 }
 
 .dropdownItem {
   padding: 8px 12px;
-  font-size: 0.9rem;
-  color: var(--text);
+  font-size: 0.875rem;
+  color: var(--nav-text);
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s;
 
   &:hover {
-    background: #f9fafb;
-    color: var(--accent);
+    background: var(--nav-hover-bg);
+    color: var(--nav-text-active);
   }
-}
-
-.divider {
-  border: 0;
-  border-top: 1px solid var(--border);
-  margin: 4px 0;
 }
 
 .logout {
-  color: #ef4444;
+  color: #f87171;
+
   &:hover {
-    background: #fef2f2;
-    color: #b91c1c;
+    background: rgba(248, 113, 113, 0.10);
+    color: #fca5a5;
   }
 }
+
 
 .authLinks {
   display: flex;
   list-style: none;
-  gap: 8px;
+  gap: 4px;
+  align-items: center;
 }
 
-.link {
-  padding: 4px 10px;
-  border-radius: var(--radius);
-  color: var(--text);
+.authBtnPrimary {
+  padding: 6px 16px;
+  background: var(--amber);
+  color: var(--obsidian);
+  border: 2px solid var(--amber);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
   text-decoration: none;
-  font-size: 0.9rem;
+  display: inline-block;
+  transition: all 0.2s; 
 
   &:hover {
-    background: #f3f4f6;
+    background: var(--amber-dark);
+    border-color: var(--amber-dark);
+    color: var(--obsidian);
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 3px rgba(200, 168, 130, 0.30);
   }
-}
-
-.active {
-  font-weight: 600;
-  color: var(--accent);
 }
