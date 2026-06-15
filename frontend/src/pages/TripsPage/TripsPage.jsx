@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { tripService } from '../services/tripService';
+import { tripService } from '../../services/tripService';
 import styles from './TripsPage.module.scss';
 
 export default function TripsPage() {

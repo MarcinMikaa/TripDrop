@@ -15,9 +15,11 @@
   padding: 25px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 
   input {
+    display: block;
+    width: 100%;
     padding: 8px;
     border: 1px solid #ccc;
     border-radius: 4px;
@@ -26,5 +28,31 @@
   button {
     padding: 10px;
     cursor: pointer;
+  }
+  .inputError {
+    border-color: red;
+  }
+
+  .inputValid {
+    border-color: green;
+  }
+
+  .errorMsg {
+    font-size: 0.8rem;
+    opacity: 0.6;
+    color: red;
+  }
+
+  .statusBanner {
+    &.success {
+      color: green;
+    }
+    &.error {
+      color: red;
+    }
+  }
+
+  .loginLink {
+    text-align: center;
   }
 }

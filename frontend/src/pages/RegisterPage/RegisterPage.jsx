@@ -1,53 +1,131 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import useAuth from '../../hooks/useAuth';
+import { authService } from '../../services/AuthService';
 import styles from './RegisterPage.module.scss';
 
-const RegisterPage = () => {
-  const { register } = useAuth();
-  const navigate = useNavigate();
+const validate = ({ email, username, password }) => {
+  const errors = {};
 
+  if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/))
+    errors.email = 'Podaj prawidłowy adres email.';
+
+  if (username.length < 3)
+    errors.username = 'Nazwa użytkownika musi mieć minimum 3 znaki.';
+  else if (username.length > 30)
+    errors.username = 'Nazwa użytkownika może mieć maksymalnie 30 znaków.';
+  else if (!/^[a-zA-Z0-9_]+$/.test(username))
+    errors.username = 'Dozwolone tylko litery, cyfry i podkreślnik (_).';
+
+  if (password.length < 8)
+    errors.password = 'Hasło musi mieć minimum 8 znaków.';
+  else if (!/[A-Z]/.test(password))
+    errors.password = 'Hasło musi zawierać przynajmniej jedną wielką literę.';
+  else if (!/[0-9]/.test(password))
+    errors.password = 'Hasło musi zawierać przynajmniej jedną cyfrę.';
+
+  return errors;
+};
+
+const RegisterPage = () => {
   const [formData, setFormData] = useState({ email: '', username: '', password: '' });
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
+  const [status, setStatus] = useState({ type: '', message: '' });
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    const updated = { ...formData, [e.target.name]: e.target.value };
+    setFormData(updated);
+
+    if (touched[e.target.name]) {
+      const fieldErrors = validate(updated);
+      setErrors((prev) => ({
+        ...prev,
+        [e.target.name]: fieldErrors[e.target.name],
+      }));
+    }
+  };
+
+  const handleBlur = (e) => {
+    const name = e.target.name;
+    setTouched((prev) => ({ ...prev, [name]: true }));
+    const fieldErrors = validate(formData);
+    setErrors((prev) => ({ ...prev, [name]: fieldErrors[name] }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setStatus({ type: '', message: '' });
+
+    setTouched({ email: true, username: true, password: true });
+    const validationErrors = validate(formData);
+    setErrors(validationErrors);
+
+    if (Object.keys(validationErrors).length > 0) return;
+
     setIsLoading(true);
-    setError('');
-    
     try {
-      await register(formData.email, formData.username, formData.password);
-      navigate('/login');
+      await authService.register(formData.email, formData.username, formData.password);
+      setStatus({ type: 'success', message: 'Konto utworzone! Przekierowanie do logowania...' });
+      setFormData({ email: '', username: '', password: '' });
+      setErrors({});
+      setTouched({});
+      setTimeout(() => { window.location.href = '/login'; }, 1500);
     } catch (err) {
-      setError(err.message);
+      setStatus({ type: 'error', message: err.message });
     } finally {
       setIsLoading(false);
     }
   };
 
+  const fields = [
+    { name: 'email',    label: 'Email',             type: 'email',    autocomplete: 'email' },
+    { name: 'username', label: 'Nazwa użytkownika', type: 'text',     autocomplete: 'username' },
+    { name: 'password', label: 'Hasło',             type: 'password', autocomplete: 'new-password' },
+  ];
+
+  const isFormValid = Object.keys(validate(formData)).length === 0;
+
   return (
     <div className={styles.wrapper}>
-      <h2>Rejestracja</h2>
-      
-      {error && <div style={{ color: 'red', marginBottom: '1rem' }}>{error}</div>}
-      
-      <form onSubmit={handleSubmit} className={styles.form}>
-        <label>Email:</label>
-        <input type="email" name="email" value={formData.email} onChange={handleChange} required />
-        
-        <label>Nazwa użytkownika:</label>
-        <input type="text" name="username" value={formData.username} onChange={handleChange} required />
-        
-        <label>Hasło:</label>
-        <input type="password" name="password" value={formData.password} onChange={handleChange} required />
-        
-        <button type="submit" disabled={isLoading}>
-          {isLoading ? 'Rejestrowanie...' : 'Zarejestruj się'}
-        </button>
-      </form>
+      <div className={styles.card}>
+        <h2 className={styles.title}>Zarejestruj się</h2>
+        <p className={styles.subtitle}>Dołącz do TripDrop i zacznij planować podróże</p>
+
+        {status.message && (
+          <div className={`${styles.statusBanner} ${styles[status.type]}`}>
+            {status.message}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className={styles.form} noValidate>
+          {fields.map(({ name, label, type, autocomplete }) => (
+            <div key={name} className={styles.field}>
+              <label className={styles.label} htmlFor={name}>{label}</label>
+              <input
+                id={name}
+                name={name}
+                type={type}
+                value={formData[name]}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                autoComplete={autocomplete}
+                className={`${styles.input} ${touched[name] && errors[name] ? styles.inputError : ''} ${touched[name] && !errors[name] && formData[name] ? styles.inputValid : ''}`}
+              />
+              {touched[name] && errors[name] && (
+                <span className={styles.errorMsg} role="alert">{errors[name]}</span>
+              )}
+            </div>
+          ))}
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className={`${styles.submitBtn} ${!isFormValid && Object.keys(touched).length > 0 ? styles.submitBtnDisabled : ''}`}
+          >
+            {isLoading ? 'Rejestrowanie...' : 'Zarejestruj się'}
+          </button>
+        </form>
+      </div>
     </div>
   );
 };

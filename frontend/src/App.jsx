@@ -1,8 +1,8 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Navbar      from './components/Navbar';
-import HomePage    from './pages/HomePage';
-import TripsPage   from './pages/TripsPage';
-import PlannerPage from './pages/PlannerPage';
+import HomePage    from './pages/HomePage/HomePage';
+import TripsPage   from './pages/TripsPage/TripsPage';
+import PlannerPage from './pages/PlannerPage/PlannerPage';
 import LoginPage from './pages/LoginPage/LoginPage';
 import RegisterPage from './pages/RegisterPage/RegisterPage';
 import useAuth      from './hooks/useAuth';
