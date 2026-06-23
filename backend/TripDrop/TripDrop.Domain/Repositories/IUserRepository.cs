@@ -1,15 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using TripDrop.Domain.Entities;
+﻿using TripDrop.Domain.Entities;
 
 namespace TripDrop.Domain.Repositories
 {
     public interface IUserRepository
     {
-        Task<User?> GetByEmailAsync(string emial, CancellationToken cancellationToken);
+        Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken);
+        Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
+        Task<IEnumerable<User>> SearchByUsernameAsync(string searchTerm, Guid excludeUserId, CancellationToken cancellationToken);
         Task AddAsync(User user, CancellationToken cancellationToken);
         Task SaveChangesAsync(CancellationToken cancellationToken);
     }

@@ -5,6 +5,7 @@ import TripsPage   from './pages/TripsPage/TripsPage';
 import PlannerPage from './pages/PlannerPage/PlannerPage';
 import LoginPage from './pages/LoginPage/LoginPage';
 import RegisterPage from './pages/RegisterPage/RegisterPage';
+import FriendsPage from './pages/FriendsPage/FriendsPage';
 import useAuth      from './hooks/useAuth';
 
 const ProtectedRoute = ({ children }) => {
@@ -33,12 +34,21 @@ function App() {
             </ProtectedRoute>
           } 
         />
+
         <Route path="/planner" 
           element={
             <ProtectedRoute>
               <PlannerPage />
             </ProtectedRoute>
           } 
+        />
+
+        <Route path="/friends"
+          element={
+            <ProtectedRoute>
+              <FriendsPage />
+            </ProtectedRoute>
+          }
         />
 
         <Route path="*" element={<Navigate to="/" replace />} />

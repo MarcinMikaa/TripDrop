@@ -13,6 +13,8 @@ namespace TripDrop.Domain.Entities
         public string Username { get; private set; }
 
         public ICollection<Trip> OwnedTrips { get; private set; } = new List<Trip>();
+        public ICollection<Friendship> SentFriendRequests { get; private set; } = new List<Friendship>();
+        public ICollection<Friendship> ReceivedFriendRequests { get; private set; } = new List<Friendship>();
 
         public User(Guid id, string email, string username)
         {
