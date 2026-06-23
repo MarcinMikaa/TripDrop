@@ -1,2 +1,103 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 32px 0;
+  gap: 32px;
+}
 
+.mapContainer {
+  width: 80%;
+  height: 80svh;
+  border: 1px solid var(--stone);
+}
 
+.mapPlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--stone);
+  color: var(--text-muted);
+}
+
+.daysRow {
+  display: flex;
+  justify-content: space-around;
+  width: 80%;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  padding-top: 8px;
+  background: var(--stone);
+  border: 1px solid var(--stone);
+}
+
+.dayColumn {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: 240px;
+  background: var(--steel-light);
+  border: 1px solid var(--stone);
+  border-radius: var(--radius);
+  padding: 12px;
+  gap: 12px;
+}
+
+.dayHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--stone);
+}
+
+.dayName {
+  font-weight: 600;
+}
+
+.dayCount {
+  min-width: 24px;
+  padding: 2px 8px;
+  text-align: center;
+  background: var(--stone);
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.pinList {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 120px;
+  gap: 8px;
+  background: var(--stone-light);
+}
+
+.pinCard {
+  padding: 10px 12px;
+  background: var(--stone-light);
+  border: 1px solid var(--stone);
+  border-radius: var(--radius-sm);
+  cursor: grab;
+}
+
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.addPinBtn {
+  width: 100%;
+  padding: 8px;
+  background: var(--linen);
+  border: 1px dashed var(--stone);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+}
