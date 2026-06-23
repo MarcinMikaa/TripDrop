@@ -178,3 +178,24 @@
     box-shadow: 0 0 0 3px rgba(200, 168, 130, 0.30);
   }
 }
+
+.iconLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  color: var(--nav-text);
+  font-size: 1.3rem;
+  transition: background 0.15s, color 0.15s;
+
+  &:hover {
+    background: var(--nav-hover-bg);
+    color: var(--nav-text-active);
+  }
+
+  &.active {
+    color: var(--nav-text-active);
+  }
+}

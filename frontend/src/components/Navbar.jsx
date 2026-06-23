@@ -57,21 +57,30 @@ export default function Navbar() {
 
         <div className={styles.auth}>
           {isAuthenticated ? (
-            <div className={styles.userMenu} ref={dropdownRef}>
-              <button className={styles.userButton} onClick={() => setIsOpen(!isOpen)}>
-                <div className={styles.avatar}>{displayName[0].toUpperCase()}</div>
-                <span className={styles.username}>{displayName}</span>
-                <span className={`${styles.arrow} ${isOpen ? styles.arrowOpen : ''}`}>▾</span>
-              </button>
+            <>
+              <NavLink
+                to="/friends"
+                className={({ isActive }) => `${styles.iconLink} ${isActive ? styles.active : ''}`}
+                aria-label="Znajomi">
+                <i className="ti ti-users" aria-hidden="true"></i>
+              </NavLink>
 
-              {isOpen && (
-                <ul className={styles.dropdown}>
-                  <li className={`${styles.dropdownItem} ${styles.logout}`} onClick={handleLogout}>
-                    Wyloguj się
-                  </li>
-                </ul>
-              )}
-            </div>
+              <div className={styles.userMenu} ref={dropdownRef}>
+                <button className={styles.userButton} onClick={() => setIsOpen(!isOpen)}>
+                  <div className={styles.avatar}>{displayName[0].toUpperCase()}</div>
+                  <span className={styles.username}>{displayName}</span>
+                  <span className={`${styles.arrow} ${isOpen ? styles.arrowOpen : ''}`}>▾</span>
+                </button>
+
+                {isOpen && (
+                  <ul className={styles.dropdown}>
+                    <li className={`${styles.dropdownItem} ${styles.logout}`} onClick={handleLogout}>
+                      Wyloguj się
+                    </li>
+                  </ul>
+                )}
+              </div>
+            </>
           ) : (
             <ul className={styles.authLinks}>
               <li>
