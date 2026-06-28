@@ -22,12 +22,14 @@ namespace TripDrop.Api
 
             builder.Services.AddMediatR(cfg =>
             {
-                cfg.RegisterServicesFromAssembly(typeof(TripDrop.Application.Trips.CreateTripCommand).Assembly);
+                cfg.RegisterServicesFromAssembly(typeof(TripDrop.Application.Trips.Commands.CreateTripCommand).Assembly);
             });
 
             builder.Services.AddScoped<ITripRepository, TripRepository>();
             builder.Services.AddScoped<IUserRepository, UserRepository>();
             builder.Services.AddScoped<IFriendshipRepository, FriendshipRepository>();
+
+            AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
             builder.Services.AddCors(options =>
             {

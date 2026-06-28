@@ -15,6 +15,7 @@ namespace TripDrop.Domain.Entities
         public ICollection<Trip> OwnedTrips { get; private set; } = new List<Trip>();
         public ICollection<Friendship> SentFriendRequests { get; private set; } = new List<Friendship>();
         public ICollection<Friendship> ReceivedFriendRequests { get; private set; } = new List<Friendship>();
+        public ICollection<TripParticipant> TripParticipations { get; private set; } = new List<TripParticipant>();
 
         public User(Guid id, string email, string username)
         {
