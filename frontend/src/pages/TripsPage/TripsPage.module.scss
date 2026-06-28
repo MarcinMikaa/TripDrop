@@ -1,91 +1,267 @@
-.page {
-  padding: 32px 16px;
-  max-width: 960px;
-  margin: 0 auto;
+.wrapper {
+  min-width: 900px;
+  max-width: 1400px;
+  margin: 2.5rem auto;
+  padding: 0 3rem;
 }
 
-.header {
+.top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-  gap: 12px;
-}
+  margin-bottom: 2rem;
+  width: 100%;
 
-.title {
-  font-size: 1.5rem;
-  font-weight: 700;
-}
-
-.status {
-  font-size: 0.85rem;
-  color: #6b7280;
-}
-
-// Stany
-
-.loading,
-.empty {
-  padding: 48px 0;
-  color: #6b7280;
-  text-align: center;
-}
-
-.error {
-  padding: 24px;
-  border: 1px solid #fca5a5;
-  border-radius: var(--radius);
-  background: #fef2f2;
-  color: #b91c1c;
-  font-size: 0.9rem;
-
-  code {
-    font-family: monospace;
-    background: #fee2e2;
-    padding: 2px 6px;
-    border-radius: 3px;
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.25rem;
+    font-weight: 600;
+    color: var(--text);
   }
 }
 
-// Karty
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(30vw, 1fr));
-  gap: 16px;
+.newBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.7rem 1.5rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--steel);
+  background: transparent;
+  color: var(--steel-dark);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  i {
+    font-size: 1.1rem;
+  }
+
+  &:hover {
+    background: var(--stone);
+  }
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .card {
+  display: grid;
+  grid-template-columns: 5px 1fr auto;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--bg);
+  transition: border-color 0.15s;
+
+  &:hover {
+    border-color: var(--steel-light);
+  }
+}
+
+.cardAccent {
+  background: var(--steel);
+}
+
+.cardBody {
+  padding: 1.75rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .cardName {
-  font-weight: 600;
-  margin-bottom: 8px;
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.ownerBadge {
+  font-size: 0.8rem;
+  padding: 3px 10px;
+  border-radius: 99px;
+  background: var(--stone);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.cardDesc {
+  font-size: 1rem;
+  color: var(--text-muted);
+  line-height: 1.5;
 }
 
 .cardMeta {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 0.8rem;
-  color: #6b7280;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
 }
 
-.metaRow {
+.metaItem {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.95rem;
+  color: var(--text-muted);
 
-  span:first-child {
-    min-width: 80px;
-    font-weight: 500;
-    color: #374151;
+  i {
+    font-size: 1rem;
+  }
+}
+
+.avatars {
+  display: flex;
+  margin-top: 0.5rem;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--stone);
+  color: var(--steel-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 2px solid var(--bg);
+  margin-right: -6px;
+  cursor: default;
+}
+
+.avatarMore {
+  background: var(--border);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.cardActions {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  padding: 1.75rem 1.75rem 1.75rem 0;
+}
+
+.actionBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.65rem 1.25rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+
+  i {
+    font-size: 1rem;
   }
 
-  code {
-    font-family: monospace;
-    font-size: 0.78rem;
+  &:hover {
+    background: var(--stone);
+    color: var(--text);
+  }
+
+  &.primary {
+    color: var(--steel-dark);
+    border-color: var(--steel);
+
+    &:hover {
+      background: var(--stone);
+    }
+  }
+
+  &.danger {
+    &:hover {
+      color: var(--accent-dark);
+      border-color: var(--accent);
+      background: transparent;
+    }
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 3rem 0;
+  font-size: 1rem;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 5rem 0;
+  color: var(--text-muted);
+
+  i {
+    font-size: 3.5rem;
+    display: block;
+    margin-bottom: 1.25rem;
+  }
+
+  p {
+    margin-bottom: 1.75rem;
+    font-size: 1.05rem;
+  }
+}
+
+.errorMsg {
+  color: var(--accent-dark);
+  text-align: center;
+  padding: 2rem 0;
+  font-size: 1rem;
+}
+
+.toast {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  padding: 0.9rem 1.5rem;
+  border-radius: var(--radius);
+  font-size: 1rem;
+  font-weight: 500;
+  z-index: 1000;
+  animation: slideIn 0.2s ease;
+
+  &.success {
+    background: var(--steel);
+    color: white;
+  }
+  &.error {
+    background: var(--accent-dark);
+    color: white;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
