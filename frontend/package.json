@@ -20,6 +20,7 @@
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-leaflet": "^5.0.0",
+    "react-resizable-panels": "^2.1.9",
     "react-router-dom": "^7.14.2",
     "sass": "^1.99.0",
     "sweetalert2": "^11.26.25"

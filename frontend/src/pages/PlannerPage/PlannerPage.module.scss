@@ -1,35 +1,46 @@
 .page {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   width: 100%;
-  padding: 32px 0;
-  gap: 32px;
+  height: calc(100svh - var(--header-h));
 }
 
 .mapContainer {
-  width: 80%;
-  height: 80svh;
   border: 1px solid var(--stone);
 }
 
-.mapPlaceholder {
+.map {
   width: 100%;
   height: 100%;
+}
+
+.resizeHandle {
+  width: 6px;
+  background: var(--steel);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--stone);
-  color: var(--text-muted);
+  transition: all 0.15s;
+  &::after
+  {
+    content: "";
+    position: absolute;
+    width: 10px;
+    height: 32px;
+    background: var(--amber);
+    transition: all 0.3s;
+  }
+  &:hover::after
+  {
+    height: 100vh;
+  }
 }
 
-.daysRow {
+.daysList {
+  height: 100%;
+  overflow-y: auto;
   display: flex;
-  justify-content: space-around;
-  width: 80%;
-  overflow-x: auto;
-  padding-bottom: 8px;
-  padding-top: 8px;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
   background: var(--stone);
   border: 1px solid var(--stone);
 }
@@ -37,8 +48,6 @@
 .dayColumn {
   display: flex;
   flex-direction: column;
-  flex-shrink: 0;
-  width: 240px;
   background: var(--steel-light);
   border: 1px solid var(--stone);
   border-radius: var(--radius);
@@ -70,8 +79,7 @@
 .pinList {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-height: 120px;
+  min-height: 60px;
   gap: 8px;
   background: var(--stone-light);
 }
@@ -88,7 +96,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 1;
+  padding: 12px;
   font-size: 0.85rem;
   color: var(--text-muted);
 }
@@ -100,4 +108,5 @@
   border: 1px dashed var(--stone);
   border-radius: var(--radius-sm);
   color: var(--text-muted);
+  cursor: pointer;
 }
