@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { tripService } from '../../services/tripService';
 import { friendshipService } from '../../services/FriendshipService';
+import { swalError } from '../../utils/swal';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import styles from './CreateTripPage.module.scss';
 
 const STEPS = ['Podstawowe informacje', 'Uczestnicy', 'Podsumowanie'];
@@ -13,7 +15,7 @@ const CreateTripPage = () => {
   const [friends, setFriends] = useState([]);
   const [selected, setSelected] = useState(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const [form, setForm] = useState({
     name: '',
@@ -41,35 +43,28 @@ const CreateTripPage = () => {
     });
   };
 
-  const validateStep1 = () => {
-    if (!form.name.trim()) return 'Nazwa wycieczki jest wymagana.';
-    if (!form.startDate) return 'Data rozpoczęcia jest wymagana.';
-    if (!form.endDate) return 'Data zakończenia jest wymagana.';
-    if (form.startDate > form.endDate)
-      return 'Data końcowa nie może być wcześniejsza niż startowa.';
-    return null;
-  };
-
   const handleNext = () => {
     if (step === 0) {
-      const err = validateStep1();
-      if (err) {
-        setError(err);
+      const errors = {};
+      if (!form.name.trim()) errors.name = 'Nazwa wycieczki jest wymagana.';
+      if (!form.startDate) errors.startDate = 'Data rozpoczęcia jest wymagana.';
+      if (!form.endDate) errors.endDate = 'Data zakończenia jest wymagana.';
+      if (form.startDate && form.endDate && form.startDate > form.endDate)
+        errors.endDate = 'Data końcowa nie może być wcześniejsza niż startowa.';
+
+      if (Object.keys(errors).length > 0) {
+        setFieldErrors(errors);
         return;
       }
+      setFieldErrors({});
     }
-    setError('');
-    setStep((prev) => prev + 1);
+    setStep(prev => prev + 1);
   };
 
-  const handleBack = () => {
-    setError('');
-    setStep((prev) => prev - 1);
-  };
+  const handleBack = () => setStep(prev => prev - 1);
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
-    setError('');
     try {
       const payload = {
         name: form.name.trim(),
@@ -81,7 +76,7 @@ const CreateTripPage = () => {
       const data = await tripService.create(payload);
       navigate(`/planner/${data.id}`);
     } catch (err) {
-      setError(err.message);
+      await swalError('Błąd', err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -107,7 +102,7 @@ const CreateTripPage = () => {
           <div key={i} className={styles.stepGroup}>
             <div className={styles.step}>
               <div className={`${styles.stepNum} ${i < step ? styles.done : i === step ? styles.active : styles.idle}`}>
-                {i < step ? <i className="ti ti-check" aria-hidden="true" /> : i + 1}
+                {i < step ? <FontAwesomeIcon icon="check" /> : i + 1}
               </div>
               <span className={`${styles.stepLabel} ${i === step ? styles.activeLabel : ''}`}>{label}</span>
             </div>
@@ -115,8 +110,6 @@ const CreateTripPage = () => {
           </div>
         ))}
       </div>
-
-      {error && <p className={styles.error}>{error}</p>}
 
       {step === 0 && (
         <div className={styles.card}>
@@ -131,8 +124,10 @@ const CreateTripPage = () => {
               placeholder="np. Majówka w Tatrach"
               value={form.name}
               onChange={handleFormChange}
+              className={fieldErrors.endDate ? 'input-error' : ''}
               maxLength={200}
             />
+            {fieldErrors.name && <p className="field-error">{fieldErrors.name}</p>}
           </div>
 
           <div className={styles.field}>
@@ -150,11 +145,27 @@ const CreateTripPage = () => {
           <div className={styles.dates}>
             <div className={styles.field}>
               <label htmlFor="startDate">Data rozpoczęcia *</label>
-              <input id="startDate" name="startDate" type="date" value={form.startDate} onChange={handleFormChange} />
+              <input
+                id="startDate"
+                name="startDate"
+                type="date"
+                value={form.startDate}
+                onChange={handleFormChange} 
+                className={fieldErrors.startDate ? 'input-error' : ''}
+              />
+              {fieldErrors.startDate && <p className="field-error">{fieldErrors.startDate}</p>}
             </div>
             <div className={styles.field}>
               <label htmlFor="endDate">Data zakończenia *</label>
-              <input id="endDate" name="endDate" type="date" value={form.endDate} onChange={handleFormChange} />
+              <input
+                id="endDate"
+                name="endDate"
+                type="date"
+                value={form.endDate}
+                onChange={handleFormChange}
+                className={fieldErrors.name ? 'input-error' : ''}
+              />
+              {fieldErrors.endDate && <p className="field-error">{fieldErrors.endDate}</p>}
             </div>
           </div>
 
@@ -190,7 +201,7 @@ const CreateTripPage = () => {
                 onClick={() => toggleParticipant(f.id)}>
                 {selected.has(f.id) ? (
                   <>
-                    <i className="ti ti-check" aria-hidden="true" /> Dodano
+                    <FontAwesomeIcon icon="check" /> Dodano
                   </>
                 ) : (
                   'Dodaj'
@@ -250,8 +261,6 @@ const CreateTripPage = () => {
               )}
             </div>
           </div>
-
-          {error && <p className={styles.error}>{error}</p>}
 
           <div className={styles.actions}>
             <button className={styles.btnBack} onClick={handleBack}>

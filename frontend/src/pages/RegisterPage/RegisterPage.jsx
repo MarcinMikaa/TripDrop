@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { authService } from '../../services/AuthService';
+import { toastSuccess, swalError } from '../../utils/swal';
 import styles from './RegisterPage.module.scss';
 
 const validate = ({ email, username, password }) => {
@@ -26,10 +28,11 @@ const validate = ({ email, username, password }) => {
 };
 
 const RegisterPage = () => {
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({ email: '', username: '', password: '' });
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
-  const [status, setStatus] = useState({ type: '', message: '' });
   const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
@@ -54,7 +57,6 @@ const RegisterPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setStatus({ type: '', message: '' });
 
     setTouched({ email: true, username: true, password: true });
     const validationErrors = validate(formData);
@@ -65,13 +67,13 @@ const RegisterPage = () => {
     setIsLoading(true);
     try {
       await authService.register(formData.email, formData.username, formData.password);
-      setStatus({ type: 'success', message: 'Konto utworzone! Przekierowanie do logowania...' });
+      await toastSuccess('Konto utworzone! Zaloguj się.');
       setFormData({ email: '', username: '', password: '' });
       setErrors({});
       setTouched({});
-      setTimeout(() => { window.location.href = '/login'; }, 1500);
+      navigate('/login');
     } catch (err) {
-      setStatus({ type: 'error', message: err.message });
+      await swalError('Błąd rejestracji', err.message);
     } finally {
       setIsLoading(false);
     }
@@ -90,12 +92,6 @@ const RegisterPage = () => {
       <div className={styles.card}>
         <h2 className={styles.title}>Zarejestruj się</h2>
         <p className={styles.subtitle}>Dołącz do TripDrop i zacznij planować podróże</p>
-
-        {status.message && (
-          <div className={`${styles.statusBanner} ${styles[status.type]}`}>
-            {status.message}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} className={styles.form} noValidate>
           {fields.map(({ name, label, type, autocomplete }) => (

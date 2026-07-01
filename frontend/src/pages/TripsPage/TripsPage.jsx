@@ -1,21 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { tripService } from '../../services/tripService';
+import { swalConfirmDelete, toastSuccess, swalError } from '../../utils/swal';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import styles from './TripsPage.module.scss';
 
 const TripsPage = () => {
   const navigate = useNavigate();
 
-  const [trips, setTrips]       = useState([]);
+  const [trips, setTrips] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError]       = useState('');
+  const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState(null);
-  const [toast, setToast]       = useState(null);
-
-  const showToast = useCallback((message, type = 'success') => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
-  }, []);
 
   const fetchTrips = useCallback(async () => {
     setIsLoading(true);
@@ -35,14 +31,16 @@ const TripsPage = () => {
   }, [fetchTrips]);
 
   const handleDelete = async (tripId) => {
-    if (!window.confirm('Na pewno chcesz usunąć tę wycieczkę?')) return;
+    const result = await swalConfirmDelete('Usunąć wycieczkę?', 'Tej operacji nie można cofnąć.');
+    if (!result.isConfirmed) return;
+
     setDeletingId(tripId);
     try {
       await tripService.delete(tripId);
-      setTrips(prev => prev.filter(t => t.id !== tripId));
-      showToast('Wycieczka została usunięta.');
+      setTrips((prev) => prev.filter((t) => t.id !== tripId));
+      await toastSuccess('Wycieczka została usunięta.');
     } catch (err) {
-      showToast(err.message, 'error');
+      await swalError('Błąd', err.message);
     } finally {
       setDeletingId(null);
     }
@@ -59,29 +57,21 @@ const TripsPage = () => {
 
   return (
     <div className={styles.wrapper}>
-      {toast && (
-        <div className={`${styles.toast} ${styles[toast.type]}`}>
-          {toast.message}
-        </div>
-      )}
-
       <div className={styles.top}>
         <h1>Twoje wycieczki</h1>
         <button className={styles.newBtn} onClick={() => navigate('/trips/new')}>
-          <i className="ti ti-plus" aria-hidden="true" />
+          <FontAwesomeIcon icon="plus" />
           Nowa wycieczka
         </button>
       </div>
 
       {isLoading && <p className={styles.empty}>Ładowanie...</p>}
 
-      {!isLoading && error && (
-        <p className={styles.errorMsg}>{error}</p>
-      )}
+      {!isLoading && error && <p className={styles.errorMsg}>{error}</p>}
 
       {!isLoading && !error && trips.length === 0 && (
         <div className={styles.emptyState}>
-          <i className="ti ti-map-off" aria-hidden="true" />
+          <FontAwesomeIcon icon="map" />
           <p>Nie masz jeszcze żadnych wycieczek.</p>
           <button className={styles.newBtn} onClick={() => navigate('/trips/new')}>
             Zaplanuj pierwszą
@@ -98,28 +88,22 @@ const TripsPage = () => {
               <div className={styles.cardBody}>
                 <div className={styles.cardTop}>
                   <h2 className={styles.cardName}>{trip.name}</h2>
-                  {trip.isOwner && (
-                    <span className={styles.ownerBadge}>Organizator</span>
-                  )}
+                  {trip.isOwner && <span className={styles.ownerBadge}>Organizator</span>}
                 </div>
 
-                {trip.description && (
-                  <p className={styles.cardDesc}>{trip.description}</p>
-                )}
+                {trip.description && <p className={styles.cardDesc}>{trip.description}</p>}
 
                 <div className={styles.cardMeta}>
                   {(trip.startDate || trip.endDate) && (
                     <span className={styles.metaItem}>
-                      <i className="ti ti-calendar" aria-hidden="true" />
+                      <FontAwesomeIcon icon="calendar" />
                       {formatDate(trip.startDate)}
                       {trip.endDate && ` - ${formatDate(trip.endDate)}`}
                     </span>
                   )}
                   <span className={styles.metaItem}>
-                    <i className="ti ti-users" aria-hidden="true" />
-                    {trip.participantCount === 0
-                      ? 'Tylko ty'
-                      : `${trip.participantCount + 1} uczestników`}
+                    <FontAwesomeIcon icon="users" />
+                    {trip.participantCount === 0 ? 'Tylko ty' : `${trip.participantCount + 1} uczestników`}
                   </span>
                 </div>
 
@@ -131,9 +115,7 @@ const TripsPage = () => {
                       </div>
                     ))}
                     {trip.participants.length > 4 && (
-                      <div className={`${styles.avatar} ${styles.avatarMore}`}>
-                        +{trip.participants.length - 4}
-                      </div>
+                      <div className={`${styles.avatar} ${styles.avatarMore}`}>+{trip.participants.length - 4}</div>
                     )}
                   </div>
                 )}
@@ -142,25 +124,20 @@ const TripsPage = () => {
               <div className={styles.cardActions}>
                 <button
                   className={`${styles.actionBtn} ${styles.primary}`}
-                  onClick={() => navigate(`/planner/${trip.id}`)}
-                >
-                  <i className="ti ti-map-2" aria-hidden="true" />
+                  onClick={() => navigate(`/planner/${trip.id}`)}>
+                  <FontAwesomeIcon icon="map-location-dot" />
                   Otwórz planer
                 </button>
-                <button
-                  className={styles.actionBtn}
-                  onClick={() => navigate(`/planner/${trip.id}/add-participant`)}
-                >
-                  <i className="ti ti-user-plus" aria-hidden="true" />
+                <button className={styles.actionBtn} onClick={() => navigate(`/planner/${trip.id}/add-participant`)}>
+                  <FontAwesomeIcon icon="user-plus" />
                   Dodaj uczestnika
                 </button>
                 {trip.isOwner && (
                   <button
                     className={`${styles.actionBtn} ${styles.danger}`}
                     onClick={() => handleDelete(trip.id)}
-                    disabled={deletingId === trip.id}
-                  >
-                    <i className="ti ti-trash" aria-hidden="true" />
+                    disabled={deletingId === trip.id}>
+                    <FontAwesomeIcon icon="trash" />
                     {deletingId === trip.id ? 'Usuwanie...' : 'Usuń'}
                   </button>
                 )}

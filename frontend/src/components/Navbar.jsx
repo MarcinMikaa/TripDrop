@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import useAuth from '../hooks/useAuth';
 import styles from './Navbar.module.scss';
 
@@ -62,14 +63,17 @@ export default function Navbar() {
                 to="/friends"
                 className={({ isActive }) => `${styles.iconLink} ${isActive ? styles.active : ''}`}
                 aria-label="Znajomi">
-                <i className="ti ti-users" aria-hidden="true"></i>
+                <FontAwesomeIcon icon="users" />
               </NavLink>
 
               <div className={styles.userMenu} ref={dropdownRef}>
                 <button className={styles.userButton} onClick={() => setIsOpen(!isOpen)}>
                   <div className={styles.avatar}>{displayName[0].toUpperCase()}</div>
                   <span className={styles.username}>{displayName}</span>
-                  <span className={`${styles.arrow} ${isOpen ? styles.arrowOpen : ''}`}>▾</span>
+                  <FontAwesomeIcon
+                    icon="chevron-down"
+                    className={`${styles.arrow} ${isOpen ? styles.arrowOpen : ''}`}
+                  />
                 </button>
 
                 {isOpen && (

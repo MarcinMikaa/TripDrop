@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
+import { swalError } from '../../utils/swal';
 import styles from './LoginPage.module.scss';
 
 const LoginPage = () => {
@@ -8,7 +9,6 @@ const LoginPage = () => {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({ email: '', password: '' });
-  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -16,13 +16,12 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
     
     try {
       await login(formData.email, formData.password);
       navigate('/');
     } catch (err) {
-      setError(err.message);
+      await swalError('Błąd logowania', err.message);
     } finally {
       setIsLoading(false);
     }
@@ -31,8 +30,6 @@ const LoginPage = () => {
   return (
     <div className={styles.wrapper}>
       <h2>Logowanie</h2>
-      
-      {error && <div style={{ color: 'red', marginBottom: '1rem' }}>{error}</div>}
       
       <form onSubmit={handleSubmit} className={styles.form}>
         <label>Email:</label>

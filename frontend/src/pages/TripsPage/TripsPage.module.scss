@@ -233,35 +233,3 @@
   padding: 2rem 0;
   font-size: 1rem;
 }
-
-.toast {
-  position: fixed;
-  bottom: 2rem;
-  right: 2rem;
-  padding: 0.9rem 1.5rem;
-  border-radius: var(--radius);
-  font-size: 1rem;
-  font-weight: 500;
-  z-index: 1000;
-  animation: slideIn 0.2s ease;
-
-  &.success {
-    background: var(--steel);
-    color: white;
-  }
-  &.error {
-    background: var(--accent-dark);
-    color: white;
-  }
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}

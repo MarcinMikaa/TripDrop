@@ -28,9 +28,10 @@
   font-size: 1.05rem;
   color: var(--text-muted);
   transition:
-    color 0.15s,
-    border-color 0.15s;
+    color 0.5s,
+    border-color 0.5s;
   outline: none;
+  
 
   &.active {
     color: var(--text);
@@ -125,8 +126,17 @@
 }
 
 .searchBox {
+  position: relative;
   padding: 1.5rem 1.75rem;
   border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  svg {
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
 
   input {
     width: 100%;
@@ -135,8 +145,7 @@
     border-radius: var(--radius-sm);
     background: var(--bg);
     color: var(--text);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 1.05rem;
+    flex: 1;
 
     &:focus {
       outline: none;
@@ -150,4 +159,13 @@
   text-align: center;
   color: var(--text-muted);
   font-size: 1.05rem;
+}
+
+.sentBadge {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--stone);
 }

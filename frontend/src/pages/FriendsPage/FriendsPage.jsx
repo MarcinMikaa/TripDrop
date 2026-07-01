@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { friendshipService } from '../../services/FriendshipService';
+import { swalError, toastSuccess, swalConfirmDelete } from '../../utils/swal';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import styles from './FriendsPage.module.scss';
 
 const FriendsPage = () => {
@@ -8,19 +10,18 @@ const FriendsPage = () => {
   const [friends, setFriends] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [sentInvites, setSentInvites] = useState(new Set());
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
 
   const debounceRef = useRef(null);
 
   const fetchPending = async () => {
     setIsLoading(true);
-    setError('');
     try {
       const data = await friendshipService.getPending();
       setPending(data);
     } catch (err) {
-      setError(err.message);
+      swalError('Błąd', err.message);
     } finally {
       setIsLoading(false);
     }
@@ -28,12 +29,11 @@ const FriendsPage = () => {
 
   const fetchFriends = async () => {
     setIsLoading(true);
-    setError('');
     try {
       const data = await friendshipService.getFriends();
       setFriends(data);
     } catch (err) {
-      setError(err.message);
+      swalError('Błąd', err.message);
     } finally {
       setIsLoading(false);
     }
@@ -55,12 +55,11 @@ const FriendsPage = () => {
 
     debounceRef.current = setTimeout(async () => {
       setIsLoading(true);
-      setError('');
       try {
         const data = await friendshipService.searchUsers(value.trim());
         setSearchResults(data);
       } catch (err) {
-        setError(err.message);
+        swalError('Błąd', err.message);
       } finally {
         setIsLoading(false);
       }
@@ -71,26 +70,34 @@ const FriendsPage = () => {
     try {
       await friendshipService.accept(friendshipId);
       setPending((prev) => prev.filter((f) => f.id !== friendshipId));
+      await fetchFriends();
+      setActiveTab('friends');
+      toastSuccess('Zaproszenie zaakceptowane');
     } catch (err) {
-      setError(err.message);
+      swalError('Błąd', err.message);
     }
   };
 
   const handleReject = async (friendshipId) => {
+    const result = await swalConfirmDelete('Odrzucić zaproszenie?', 'Użytkownik nie zostanie powiadomiony.');
+    if (!result.isConfirmed) return;
+
     try {
       await friendshipService.reject(friendshipId);
       setPending((prev) => prev.filter((f) => f.id !== friendshipId));
+      toastSuccess('Zaproszenie odrzucone');
     } catch (err) {
-      setError(err.message);
+      swalError('Błąd', err.message);
     }
   };
 
   const handleSendInvite = async (addresseeId) => {
     try {
       await friendshipService.sendInvite(addresseeId);
-      setSearchResults((prev) => prev.filter((u) => u.id !== addresseeId));
+      setSentInvites((prev) => new Set([...prev, addresseeId]));
+      toastSuccess('Zaproszenie wysłane');
     } catch (err) {
-      setError(err.message);
+      swalError('Błąd', err.message);
     }
   };
 
@@ -98,23 +105,21 @@ const FriendsPage = () => {
     <div className={styles.wrapper}>
       <h2>Znajomi</h2>
 
-      {error && <p style={{ color: 'var(--accent-dark)', marginBottom: '1rem' }}>{error}</p>}
-
       <div className={styles.tabs}>
         <button
           className={`${styles.tab} ${activeTab === 'pending' ? styles.active : ''}`}
           onClick={() => setActiveTab('pending')}>
-          Zaproszenia ({pending.length})
+          <FontAwesomeIcon icon="bell" /> Zaproszenia ({pending.length})
         </button>
         <button
           className={`${styles.tab} ${activeTab === 'friends' ? styles.active : ''}`}
           onClick={() => setActiveTab('friends')}>
-          Moi znajomi
+          <FontAwesomeIcon icon="user-group" /> Moi znajomi
         </button>
         <button
           className={`${styles.tab} ${activeTab === 'search' ? styles.active : ''}`}
           onClick={() => setActiveTab('search')}>
-          Wyszukaj
+          <FontAwesomeIcon icon="magnifying-glass" /> Wyszukaj
         </button>
       </div>
 
@@ -132,10 +137,10 @@ const FriendsPage = () => {
                   <span className={styles.sub}>chce dodać Cię do znajomych</span>
                 </div>
                 <button className={`${styles.pillBtn} ${styles.accept}`} onClick={() => handleAccept(f.id)}>
-                  Akceptuj
+                  <FontAwesomeIcon icon="check" /> Akceptuj
                 </button>
                 <button className={`${styles.pillBtn} ${styles.reject}`} onClick={() => handleReject(f.id)}>
-                  Odrzuć
+                  <FontAwesomeIcon icon="xmark" /> Odrzuć
                 </button>
               </div>
             ))}
@@ -159,6 +164,7 @@ const FriendsPage = () => {
         {activeTab === 'search' && (
           <>
             <div className={styles.searchBox}>
+              <FontAwesomeIcon icon="magnifying-glass" className={styles.searchIcon} />
               <input type="text" placeholder="Min. 3 znaki..." value={searchTerm} onChange={handleSearch} />
             </div>
             {!isLoading && searchTerm.trim().length >= 3 && searchResults.length === 0 && (
@@ -174,9 +180,13 @@ const FriendsPage = () => {
                   <div className={styles.rowInfo}>
                     <span className={styles.username}>{u.username}</span>
                   </div>
-                  <button className={styles.pillBtn} onClick={() => handleSendInvite(u.id)}>
-                    Wyślij zaproszenie
-                  </button>
+                  {sentInvites.has(u.id) ? (
+                    <span className={styles.sentBadge}>Zaproszenie wysłane</span>
+                  ) : (
+                    <button className={styles.pillBtn} onClick={() => handleSendInvite(u.id)}>
+                      <FontAwesomeIcon icon="user-plus" /> Wyślij zaproszenie
+                    </button>
+                  )}
                 </div>
               ))}
           </>
