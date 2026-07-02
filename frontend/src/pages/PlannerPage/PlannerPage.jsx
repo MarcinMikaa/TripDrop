@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useParams } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -50,6 +50,28 @@ const MOCK_PINS = {
 
 const DEFAULT_CENTER = [51.4297, 20.1122];
 const DEFAULT_ZOOM = 13;
+
+/*
+const { id } = useParams();
+
+const [trip, setTrip] = useState(null);
+
+useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const tripData = await tripService.getById(id);
+        setTrip(tripData);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [id]);
+*/
 
 const ResizeAware = () => {
   const map = useMap();

@@ -14,7 +14,7 @@ export default function HomePage() {
             wypadu ze znajomymi zajmie krótką chwilę.
           </p>
           <div className={styles.heroActions}>
-            <NavLink to="/planner">
+            <NavLink to="/trips/new">
             <button className={styles.btnSun}>
               Utwórz pokój
               <span className={styles.sunRays} aria-hidden="true">
