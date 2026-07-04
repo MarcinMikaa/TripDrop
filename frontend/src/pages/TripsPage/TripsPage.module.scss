@@ -7,17 +7,22 @@
 
 .top {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 2rem;
-  width: 100%;
+  margin-bottom: 1.75rem;
 
   h1 {
     font-family: 'Playfair Display', serif;
     font-size: 2.25rem;
     font-weight: 600;
     color: var(--text);
+    margin-bottom: 0.3rem;
   }
+}
+
+.subtitle {
+  font-size: 0.95rem;
+  color: var(--text-muted);
 }
 
 .newBtn {
@@ -32,6 +37,7 @@
   font-size: 1rem;
   cursor: pointer;
   transition: background 0.15s;
+  white-space: nowrap;
 
   i {
     font-size: 1.1rem;
@@ -40,6 +46,61 @@
   &:hover {
     background: var(--stone);
   }
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 1.75rem;
+}
+
+.statCard {
+  background: var(--stone);
+  border-radius: var(--radius-lg);
+  padding: 1.1rem 1.4rem;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.statIcon {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1.1rem;
+}
+
+.iconSteel {
+  background: rgba(91, 143, 168, 0.18);
+  color: var(--steel-dark);
+}
+
+.iconAmber {
+  background: rgba(200, 168, 130, 0.25);
+  color: var(--amber-dark);
+}
+
+.iconGreen {
+  background: rgba(99, 153, 34, 0.15);
+  color: #3b6d11;
+}
+
+.statNum {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.5rem;
+  color: var(--text);
+  line-height: 1;
+}
+
+.statLabel {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 3px;
 }
 
 .list {
@@ -62,8 +123,16 @@
   }
 }
 
-.cardAccent {
+.cardUpcoming .cardAccent {
   background: var(--steel);
+}
+
+.cardPast .cardAccent {
+  background: var(--border);
+}
+
+.cardPast {
+  opacity: 0.85;
 }
 
 .cardBody {
@@ -77,6 +146,7 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .cardName {
@@ -87,6 +157,24 @@
 
 .ownerBadge {
   font-size: 0.8rem;
+  padding: 3px 10px;
+  border-radius: 99px;
+  background: var(--stone);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.statusBadgeUpcoming {
+  font-size: 0.78rem;
+  padding: 3px 10px;
+  border-radius: 99px;
+  background: rgba(91, 143, 168, 0.15);
+  color: var(--steel-dark);
+  font-weight: 500;
+}
+
+.statusBadgePast {
+  font-size: 0.78rem;
   padding: 3px 10px;
   border-radius: 99px;
   background: var(--stone);
@@ -232,4 +320,10 @@
   text-align: center;
   padding: 2rem 0;
   font-size: 1rem;
+}
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin-bottom: 1.75rem;
 }

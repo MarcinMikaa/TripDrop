@@ -83,7 +83,7 @@ const CreateTripPage = () => {
   };
 
   const formatDate = (dateStr) => {
-    if (!dateStr) return '—';
+    if (!dateStr) return '-';
     return new Date(dateStr).toLocaleDateString('pl-PL', {
       day: 'numeric',
       month: 'long',

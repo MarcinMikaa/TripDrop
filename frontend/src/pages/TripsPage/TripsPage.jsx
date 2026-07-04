@@ -5,6 +5,17 @@ import { swalConfirmDelete, toastSuccess, swalError } from '../../utils/swal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import styles from './TripsPage.module.scss';
 
+const isUpcoming = (trip) => {
+  if (!trip.endDate) return true;
+  return new Date(trip.endDate) >= new Date(new Date().setHours(0, 0, 0, 0));
+};
+
+const daysUntil = (dateStr) => {
+  if (!dateStr) return null;
+  const diff = new Date(dateStr) - new Date(new Date().setHours(0, 0, 0, 0));
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+};
+
 const TripsPage = () => {
   const navigate = useNavigate();
 
@@ -55,18 +66,55 @@ const TripsPage = () => {
     });
   };
 
+  const upcomingCount = trips.filter(isUpcoming).length;
+  const totalParticipants = trips.reduce((sum, t) => sum + t.participantCount + 1, 0);
+
   return (
     <div className={styles.wrapper}>
       <div className={styles.top}>
-        <h1>Twoje wycieczki</h1>
+        <div>
+          <h1>Twoje wycieczki</h1>
+          <p className={styles.subtitle}>Wszystkie podróże które planujesz lub w których uczestniczysz</p>
+        </div>
         <button className={styles.newBtn} onClick={() => navigate('/trips/new')}>
           <FontAwesomeIcon icon="plus" />
           Nowa wycieczka
         </button>
       </div>
 
-      {isLoading && <p className={styles.empty}>Ładowanie...</p>}
+      {!isLoading && !error && trips.length > 0 && (
+        <div className={styles.stats}>
+          <div className={styles.statCard}>
+            <div className={`${styles.statIcon} ${styles.iconSteel}`}>
+              <FontAwesomeIcon icon="map-location-dot" />
+            </div>
+            <div>
+              <div className={styles.statNum}>{trips.length}</div>
+              <div className={styles.statLabel}>wszystkich wycieczek</div>
+            </div>
+          </div>
+          <div className={styles.statCard}>
+            <div className={`${styles.statIcon} ${styles.iconAmber}`}>
+              <FontAwesomeIcon icon="calendar" />
+            </div>
+            <div>
+              <div className={styles.statNum}>{upcomingCount}</div>
+              <div className={styles.statLabel}>nadchodzące</div>
+            </div>
+          </div>
+          <div className={styles.statCard}>
+            <div className={`${styles.statIcon} ${styles.iconGreen}`}>
+              <FontAwesomeIcon icon="users" />
+            </div>
+            <div>
+              <div className={styles.statNum}>{totalParticipants}</div>
+              <div className={styles.statLabel}>łącznie uczestników</div>
+            </div>
+          </div>
+        </div>
+      )}
 
+      {isLoading && <p className={styles.empty}>Ładowanie...</p>}
       {!isLoading && error && <p className={styles.errorMsg}>{error}</p>}
 
       {!isLoading && !error && trips.length === 0 && (
@@ -79,71 +127,84 @@ const TripsPage = () => {
         </div>
       )}
 
+      {!isLoading && !error && trips.length > 0 && <div className={styles.divider} />}
+
       {!isLoading && !error && trips.length > 0 && (
         <div className={styles.list}>
-          {trips.map((trip) => (
-            <article key={trip.id} className={styles.card}>
-              <div className={styles.cardAccent} />
+          {trips.map((trip) => {
+            const upcoming = isUpcoming(trip);
+            const days = daysUntil(trip.startDate);
 
-              <div className={styles.cardBody}>
-                <div className={styles.cardTop}>
-                  <h2 className={styles.cardName}>{trip.name}</h2>
-                  {trip.isOwner && <span className={styles.ownerBadge}>Organizator</span>}
-                </div>
+            return (
+              <article key={trip.id} className={`${styles.card} ${upcoming ? styles.cardUpcoming : styles.cardPast}`}>
+                <div className={styles.cardAccent} />
 
-                {trip.description && <p className={styles.cardDesc}>{trip.description}</p>}
-
-                <div className={styles.cardMeta}>
-                  {(trip.startDate || trip.endDate) && (
-                    <span className={styles.metaItem}>
-                      <FontAwesomeIcon icon="calendar" />
-                      {formatDate(trip.startDate)}
-                      {trip.endDate && ` - ${formatDate(trip.endDate)}`}
-                    </span>
-                  )}
-                  <span className={styles.metaItem}>
-                    <FontAwesomeIcon icon="users" />
-                    {trip.participantCount === 0 ? 'Tylko ty' : `${trip.participantCount + 1} uczestników`}
-                  </span>
-                </div>
-
-                {trip.participants?.length > 0 && (
-                  <div className={styles.avatars}>
-                    {trip.participants.slice(0, 4).map((p) => (
-                      <div key={p.id} className={styles.avatar} title={p.username}>
-                        {p.username[0].toUpperCase()}
-                      </div>
-                    ))}
-                    {trip.participants.length > 4 && (
-                      <div className={`${styles.avatar} ${styles.avatarMore}`}>+{trip.participants.length - 4}</div>
+                <div className={styles.cardBody}>
+                  <div className={styles.cardTop}>
+                    <h2 className={styles.cardName}>{trip.name}</h2>
+                    {trip.isOwner && <span className={styles.ownerBadge}>Organizator</span>}
+                    {upcoming && days !== null && days >= 0 && (
+                      <span className={styles.statusBadgeUpcoming}>
+                        {days === 0 ? 'Dzisiaj' : `Za ${days} ${days === 1 ? 'dzień' : 'dni'}`}
+                      </span>
                     )}
+                    {!upcoming && <span className={styles.statusBadgePast}>Zakończona</span>}
                   </div>
-                )}
-              </div>
 
-              <div className={styles.cardActions}>
-                <button
-                  className={`${styles.actionBtn} ${styles.primary}`}
-                  onClick={() => navigate(`/planner/${trip.id}`)}>
-                  <FontAwesomeIcon icon="map-location-dot" />
-                  Otwórz planer
-                </button>
-                <button className={styles.actionBtn} onClick={() => navigate(`/planner/${trip.id}/add-participant`)}>
-                  <FontAwesomeIcon icon="user-plus" />
-                  Dodaj uczestnika
-                </button>
-                {trip.isOwner && (
+                  {trip.description && <p className={styles.cardDesc}>{trip.description}</p>}
+
+                  <div className={styles.cardMeta}>
+                    {(trip.startDate || trip.endDate) && (
+                      <span className={styles.metaItem}>
+                        <FontAwesomeIcon icon="calendar" />
+                        {formatDate(trip.startDate)}
+                        {trip.endDate && ` - ${formatDate(trip.endDate)}`}
+                      </span>
+                    )}
+                    <span className={styles.metaItem}>
+                      <FontAwesomeIcon icon="users" />
+                      {trip.participantCount === 0 ? 'Tylko ty' : `${trip.participantCount + 1} uczestników`}
+                    </span>
+                  </div>
+
+                  {trip.participants?.length > 0 && (
+                    <div className={styles.avatars}>
+                      {trip.participants.slice(0, 4).map((p) => (
+                        <div key={p.id} className={styles.avatar} title={p.username}>
+                          {p.username[0].toUpperCase()}
+                        </div>
+                      ))}
+                      {trip.participants.length > 4 && (
+                        <div className={`${styles.avatar} ${styles.avatarMore}`}>+{trip.participants.length - 4}</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className={styles.cardActions}>
                   <button
-                    className={`${styles.actionBtn} ${styles.danger}`}
-                    onClick={() => handleDelete(trip.id)}
-                    disabled={deletingId === trip.id}>
-                    <FontAwesomeIcon icon="trash" />
-                    {deletingId === trip.id ? 'Usuwanie...' : 'Usuń'}
+                    className={`${styles.actionBtn} ${styles.primary}`}
+                    onClick={() => navigate(`/planner/${trip.id}`)}>
+                    <FontAwesomeIcon icon="map-location-dot" />
+                    Otwórz planer
                   </button>
-                )}
-              </div>
-            </article>
-          ))}
+                  <button className={styles.actionBtn} onClick={() => navigate(`/planner/${trip.id}/add-participant`)}>
+                    <FontAwesomeIcon icon="user-plus" />
+                    Dodaj uczestnika
+                  </button>
+                  {trip.isOwner && (
+                    <button
+                      className={`${styles.actionBtn} ${styles.danger}`}
+                      onClick={() => handleDelete(trip.id)}
+                      disabled={deletingId === trip.id}>
+                      <FontAwesomeIcon icon="trash" />
+                      {deletingId === trip.id ? 'Usuwanie...' : 'Usuń'}
+                    </button>
+                  )}
+                </div>
+              </article>
+            );
+          })}
         </div>
       )}
     </div>
