@@ -1,6 +1,6 @@
-import { useState, useEffect} from 'react';
-//import { useParams } from 'react-router-dom';
-//import { tripService } from '../services/TripService';
+import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { tripService } from '../../services/TripService';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -17,63 +17,38 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 });
 
-const DAY_NAMES = [
-  'Piaskownica',
-  'Poniedziałek',
-  'Wtorek',
-  'Środa',
-  'Czwartek',
-  'Piątek',
-  'Sobota',
-  'Niedziela',
-];
-
-const TRIP_DAYS = 6; //dopiąć serwis liczenia
-
-const MOCK_PINS = {
-  0: [
-    { id: 'p7', title: 'TEST' },
-  ],
-  1: [
-    { id: 'p1', title: 'Wieża Eiffla' },
-    { id: 'p2', title: 'Mount Everest' },
-  ],
-  2: [
-    { id: 'p3', title: 'Notre dam' },
-  ],
-  3: [],
-  4: [
-    { id: 'p4', title: 'Wieża Eiffla 2' },
-  ],
-  5: [
-    { id: 'p5', title: 'Wersal' },
-  ],
-};
-
 const DEFAULT_CENTER = [51.4297, 20.1122];
 const DEFAULT_ZOOM = 13;
 
-/*
-const { id } = useParams();
+const buildBuckets = (startDate, endDate) => {
+  const buckets = [{ index: null, label: 'Nieprzypisane' }];
 
-const [trip, setTrip] = useState(null);
+  if (!startDate || !endDate) return buckets;
 
-useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        const tripData = await tripService.getById(id);
-        setTrip(tripData);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const start = new Date(startDate);
+  const end = new Date(endDate);
 
-    fetchData();
-  }, [id]);
-*/
+  start.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+
+  const formatter = new Intl.DateTimeFormat('pl-PL', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
+
+  let index = 0;
+  const cursor = new Date(start);
+  while (cursor <= end) {
+    let label = formatter.format(cursor);
+    label = label.charAt(0).toUpperCase() + label.slice(1);
+    buckets.push({ index, label });
+    index++;
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return buckets;
+};
 
 const ResizeAware = () => {
   const map = useMap();
@@ -102,17 +77,49 @@ const MapClickHandler = ({ onAddPin }) => {
 };
 
 const PlannerPage = () => {
+  const { id } = useParams();
+
+  const [trip, setTrip] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [mapPins, setMapPins] = useState([]);
 
-  const days = DAY_NAMES.slice(0, TRIP_DAYS).map((name, index) => ({
-    name,
-    index,
-    pins: MOCK_PINS[index] || [],
-  }));
+  useEffect(() => {
+    if (!id) return;
+
+    const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const tripData = await tripService.getById(id);
+        setTrip(tripData);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [id]);
 
   const handleAddPin = (pin) => {
     setMapPins((prev) => [...prev, pin]);
   };
+
+  if (isLoading) {
+    return <div className={styles.status}>Ładowanie wycieczki</div>;
+  }
+
+  if (error) {
+    return <div className={styles.status}>Błąd: {error}</div>;
+  }
+
+  if (!trip) {
+    return <div className={styles.status}>Nie znaleziono wycieczki.</div>;
+  }
+
+  const buckets = buildBuckets(trip.startDate, trip.endDate);
 
   return (
     <PanelGroup
@@ -147,23 +154,18 @@ const PlannerPage = () => {
       {/* Boxy */}
       <Panel defaultSize={40} minSize={20} className={styles.daysPanel}>
         <div className={styles.daysList}>
-          {days.map((day) => (
-            <div key={day.index} className={styles.dayColumn}>
+          {buckets.map((bucket) => (
+            <div
+              key={bucket.index ?? 'unassigned'}
+              className={styles.dayColumn}
+            >
               <div className={styles.dayHeader}>
-                <span className={styles.dayName}>{day.name}</span>
-                <span className={styles.dayCount}>{day.pins.length}</span>
+                <span className={styles.dayName}>{bucket.label}</span>
+                <span className={styles.dayCount}>0</span>
               </div>
 
               <div className={styles.pinList}>
-                {day.pins.map((pin) => (
-                  <div key={pin.id} className={styles.pinCard}>
-                    {pin.title}
-                  </div>
-                ))}
-
-                {day.pins.length === 0 && (
-                  <div className={styles.emptyState}>Brak pinezek</div>
-                )}
+                <div className={styles.emptyState}>Brak pinezek</div>
               </div>
 
               <button type="button" className={styles.addPinBtn}>
