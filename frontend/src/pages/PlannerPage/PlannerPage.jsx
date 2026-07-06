@@ -1,4 +1,6 @@
-import { useState, useEffect, useParams } from 'react';
+import { useState, useEffect} from 'react';
+//import { useParams } from 'react-router-dom';
+//import { tripService } from '../services/TripService';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
