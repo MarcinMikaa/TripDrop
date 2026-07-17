@@ -1,6 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using TripDrop.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using TripDrop.Domain.Entities;
 
 namespace TripDrop.Infrastructure.Persistence
 {
@@ -12,6 +15,7 @@ namespace TripDrop.Infrastructure.Persistence
         public DbSet<User> Users => Set<User>();
         public DbSet<Friendship> Friendships => Set<Friendship>();
         public DbSet<TripParticipant> TripParticipants => Set<TripParticipant>();
+        public DbSet<TripPoint> TripPoints => Set<TripPoint>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -81,6 +85,30 @@ namespace TripDrop.Infrastructure.Persistence
                 entity.HasIndex(e => new { e.TripId, e.UserId }).IsUnique();
 
                 entity.Property(e => e.JoinedAt).IsRequired();
+            });
+
+            modelBuilder.Entity<TripPoint>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Latitude).IsRequired();
+                entity.Property(e => e.Longitude).IsRequired();
+                entity.Property(e => e.Position).IsRequired();
+                entity.Property(e => e.DayIndex).IsRequired(false);
+                entity.Property(e => e.CreatedAt).IsRequired();
+                entity.Property(e => e.UpdatedAt).IsRequired();
+
+                entity.HasOne(e => e.Trip)
+                    .WithMany()
+                    .HasForeignKey(e => e.TripId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasIndex(e => e.TripId);
             });
         }
     }

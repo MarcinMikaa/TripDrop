@@ -17,4 +17,10 @@
     <ProjectReference Include="..\TripDrop.Domain\TripDrop.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="TripPoints\Commands\" />
+    <Folder Include="TripPoints\Dto\" />
+    <Folder Include="TripPoints\Users\" />
+  </ItemGroup>
+
 </Project>
