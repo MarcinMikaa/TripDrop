@@ -49,5 +49,10 @@ namespace TripDrop.Infrastructure.Repositories
         {
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
+
+        public async Task AddParticipantAsync(TripParticipant participant, CancellationToken cancellationToken)
+        {
+            await _dbContext.TripParticipants.AddAsync(participant, cancellationToken);
+        }
     }
 }

@@ -31,5 +31,13 @@ namespace TripDrop.Domain.Entities
             EndDate = endDate;
             CreatedAt = DateTime.UtcNow;
         }
+
+        public void UpdateDetails(string name, string? description, DateTime? startDate, DateTime? endDate)
+        {
+            Name = name;
+            Description = description;
+            StartDate = startDate;
+            EndDate = endDate;
+        }
     }
 }

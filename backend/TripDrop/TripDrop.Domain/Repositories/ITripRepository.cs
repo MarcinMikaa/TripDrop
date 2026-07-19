@@ -9,5 +9,6 @@ namespace TripDrop.Domain.Repositories
         Task AddAsync(Trip trip, CancellationToken cancellationToken);
         Task DeleteAsync(Guid id, CancellationToken cancellationToken);
         Task SaveChangesAsync(CancellationToken cancellationToken);
+        Task AddParticipantAsync(TripParticipant participant, CancellationToken cancellationToken);
     }
 }

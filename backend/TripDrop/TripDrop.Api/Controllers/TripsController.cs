@@ -108,6 +108,44 @@ namespace TripDrop.Api.Controllers
                 return BadRequest(new { Error = ex.Message });
             }
         }
+
+        [HttpPut("{id:guid}")]
+        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateTripDto dto, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                await _mediator.Send(new UpdateTripCommand(id, userId, dto.Name, dto.Description, dto.StartDate, dto.EndDate), cancellationToken);
+                return NoContent();
+            }
+            catch (UnauthorizedAccessException) { return Forbid(); }
+            catch (InvalidOperationException ex) { return BadRequest(new { Error = ex.Message }); }
+        }
+
+        [HttpDelete("{id:guid}/participants/{userId:guid}")]
+        public async Task<IActionResult> RemoveParticipant(Guid id, Guid userId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var currentUserId = GetCurrentUserId();
+                await _mediator.Send(new RemoveTripParticipantCommand(id, userId, currentUserId), cancellationToken);
+                return NoContent();
+            }
+            catch (UnauthorizedAccessException) { return Forbid(); }
+            catch (InvalidOperationException ex) { return BadRequest(new { Error = ex.Message }); }
+        }
+
+        [HttpPost("{id:guid}/leave")]
+        public async Task<IActionResult> Leave(Guid id, CancellationToken ct)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                await _mediator.Send(new LeaveTripCommand(id, userId), ct);
+                return NoContent();
+            }
+            catch (InvalidOperationException ex) { return BadRequest(new { Error = ex.Message }); }
+        }
     }
 
     public record CreateTripDto(
@@ -119,4 +157,11 @@ namespace TripDrop.Api.Controllers
     );
 
     public record AddParticipantDto(Guid UserId);
+
+    public record UpdateTripDto(
+        string Name,
+        string? Description,
+        DateTime? StartDate,
+        DateTime? EndDate
+        );
 }
