@@ -35,6 +35,18 @@ export const tripService = {
     return res.json();
   },
 
+  update: async (id, data) => {
+    const res = await fetch(`${API_BASE}/api/trips/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.Error || 'Błąd zapisu.');
+    }
+  },
+
   delete: async (id) => {
     const res = await fetch(`${API_BASE}/api/trips/${id}`, {
       method: 'DELETE',
@@ -56,5 +68,23 @@ export const tripService = {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.Error || `Błąd dodawania uczestnika: ${res.status}`);
     }
+  },
+
+  removeParticipant: async (tripId, userId) => {
+    const res = await fetch(`${API_BASE}/api/trips/${tripId}/participants/${userId}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.Error || 'Błąd usuwania.');
+    }
+  },
+
+  leave: async (id) => {
+    const res = await fetch(`${API_BASE}/api/trips/${id}/leave`, {
+      method: 'POST', headers: getHeaders(),
+    });
+    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.Error || 'Błąd opuszczania wycieczki.'); }
   },
 };

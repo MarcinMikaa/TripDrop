@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage/LoginPage';
 import RegisterPage from './pages/RegisterPage/RegisterPage';
 import FriendsPage from './pages/FriendsPage/FriendsPage';
 import CreateTripPage from './pages/CreateTripPage/CreateTripPage';
+import ManageTripPage from './pages/ManageTripPage/ManageTripPage';
 import useAuth      from './hooks/useAuth';
 
 const ProtectedRoute = ({ children }) => {
@@ -40,6 +41,14 @@ function App() {
           element={
             <ProtectedRoute>
               <CreateTripPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route path='/trips/:id/manage'
+          element={
+            <ProtectedRoute>
+              <ManageTripPage />
             </ProtectedRoute>
           }
         />

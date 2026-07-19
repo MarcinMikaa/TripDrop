@@ -1,0 +1,258 @@
+.wrapper {
+  min-width: 1200px;
+  max-width: 1500px;
+  margin: 2.5rem auto;
+  padding: 0 2rem;
+}
+
+.back {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 1.1rem;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--text);
+  }
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #1a1815;
+  color: var(--text-on-dark);
+  padding: 1.25rem 1.75rem;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  box-shadow: 0 4px 20px rgba(10, 10, 10, 0.08);
+}
+
+.topbarPin {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius);
+  background: rgba(200, 168, 130, 0.25);
+  color: var(--amber);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.topbarName {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.25rem;
+}
+
+.topbarMeta {
+  font-size: 0.85rem;
+  color: var(--text-on-dark-muted);
+  margin-top: 2px;
+}
+
+.shell {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  overflow: hidden;
+  min-height: 500px;
+  background: var(--bg);
+  box-shadow: 0 4px 20px rgba(10, 10, 10, 0.08);
+}
+
+.nav {
+  background: var(--stone);
+  padding: 1.5rem 1rem;
+  border-right: 1px solid var(--border);
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  margin-bottom: 3px;
+  transition:
+    background 0.15s,
+    color 0.15s;
+
+  i {
+    font-size: 1rem;
+    width: 18px;
+  }
+
+  &.active {
+    background: var(--bg);
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  &.disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+}
+
+.content {
+  padding: 2.25rem 2.5rem;
+}
+
+.contentTitle {
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 1.75rem;
+}
+
+.field {
+  margin-bottom: 1.25rem;
+
+  label {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 7px;
+  }
+
+  input,
+  textarea {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1rem;
+
+    &:focus {
+      outline: none;
+      border-color: var(--steel);
+      box-shadow: 0 0 0 3px rgba(91, 143, 168, 0.15);
+    }
+  }
+
+  textarea {
+    resize: none;
+  }
+}
+
+.dates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.saveBtn {
+  padding: 0.8rem 1.75rem;
+  border-radius: var(--radius);
+  border: none;
+  background: var(--steel);
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: background 0.15s;
+
+  &:hover {
+    background: var(--steel-dark);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.partRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border-subtle);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.partAvatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--stone);
+  color: var(--steel-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.partName {
+  flex: 1;
+  font-size: 1.05rem;
+  color: var(--text);
+}
+
+.ownerTag {
+  font-size: 0.8rem;
+  padding: 3px 12px;
+  border-radius: 99px;
+  background: var(--stone);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.removeBtn {
+  font-size: 0.85rem;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent);
+  color: var(--accent-dark);
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: var(--stone);
+  }
+}
+
+.addBtn {
+  font-size: 0.85rem;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--steel);
+  color: var(--steel-dark);
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: var(--stone);
+  }
+}
+
+.addSection {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.addTitle {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 0.6rem;
+}

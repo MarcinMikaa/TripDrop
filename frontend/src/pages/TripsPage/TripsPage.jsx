@@ -57,6 +57,18 @@ const TripsPage = () => {
     }
   };
 
+  const handleLeave = async (tripId) => {
+    const result = await swalConfirmDelete('Opuścić wycieczkę?', 'Stracisz dostęp do tej wycieczki.');
+    if (!result.isConfirmed) return;
+    try {
+      await tripService.leave(tripId);
+      setTrips(prev => prev.filter(t => t.id !== tripId));
+      toastSuccess('Opuściłeś wycieczkę.');
+    } catch (err) {
+      swalError('Błąd', err.message);
+    }
+  };
+
   const formatDate = (date) => {
     if (!date) return null;
     return new Date(date).toLocaleDateString('pl-PL', {
@@ -188,10 +200,12 @@ const TripsPage = () => {
                     <FontAwesomeIcon icon="map-location-dot" />
                     Otwórz planer
                   </button>
-                  <button className={styles.actionBtn} onClick={() => navigate(`/planner/${trip.id}/add-participant`)}>
-                    <FontAwesomeIcon icon="user-plus" />
-                    Dodaj uczestnika
-                  </button>
+                  {trip.isOwner && (
+                    <button className={styles.actionBtn} onClick={() => navigate(`/trips/${trip.id}/manage`)}>
+                      <FontAwesomeIcon icon="gear" />
+                      Zarządzaj
+                    </button>
+                  )}
                   {trip.isOwner && (
                     <button
                       className={`${styles.actionBtn} ${styles.danger}`}
@@ -199,6 +213,11 @@ const TripsPage = () => {
                       disabled={deletingId === trip.id}>
                       <FontAwesomeIcon icon="trash" />
                       {deletingId === trip.id ? 'Usuwanie...' : 'Usuń'}
+                    </button>
+                  )}
+                  {!trip.isOwner && (
+                    <button className={`${styles.actionBtn} ${styles.danger}`} onClick={() => handleLeave(trip.id)}>
+                      <FontAwesomeIcon icon="right-from-bracket" /> Opuść
                     </button>
                   )}
                 </div>
