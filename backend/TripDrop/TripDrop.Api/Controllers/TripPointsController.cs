@@ -57,8 +57,37 @@ namespace TripDrop.Api.Controllers
                     dto.Longitude,
                     dto.DayIndex
                 );
-                var pointId = await _mediator.Send(command, cancellationToken);
-                return CreatedAtAction(nameof(GetByTrip), new { tripId }, new { id = pointId });
+                var created = await _mediator.Send(command, cancellationToken);
+                return CreatedAtAction(nameof(GetByTrip), new { tripId }, created);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { Error = ex.Message });
+            }
+        }
+
+        [HttpPut("{pointId:guid}")]
+        public async Task<IActionResult> Update(
+            Guid tripId,
+            Guid pointId,
+            [FromBody] UpdateTripPointDto dto,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                await _mediator.Send(new UpdateTripPointCommand(
+                    pointId,
+                    userId,
+                    dto.Name,
+                    dto.DayIndex,
+                    dto.Position
+                ), cancellationToken);
+                return NoContent();
             }
             catch (UnauthorizedAccessException)
             {
@@ -96,5 +125,10 @@ namespace TripDrop.Api.Controllers
         double Longitude,
         int? DayIndex
     );
-}
 
+    public record UpdateTripPointDto(
+        string Name,
+        int? DayIndex,
+        int Position
+    );
+}

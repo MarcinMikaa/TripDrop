@@ -1,4 +1,5 @@
 using MediatR;
+using TripDrop.Application.TripPoints.DTOs;
 
 namespace TripDrop.Application.TripPoints.Commands
 {
@@ -9,5 +10,5 @@ namespace TripDrop.Application.TripPoints.Commands
         double Latitude,
         double Longitude,
         int? DayIndex
-    ) : IRequest<Guid>;
+    ) : IRequest<TripPointDto>;
 }

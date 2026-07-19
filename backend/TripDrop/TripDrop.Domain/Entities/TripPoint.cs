@@ -35,12 +35,20 @@ namespace TripDrop.Domain.Entities
             Id = Guid.NewGuid();
             TripId = tripId;
             UserId = userId;
-            Name = name;
+            Name = name ?? string.Empty;
             Latitude = latitude;
             Longitude = longitude;
             DayIndex = dayIndex;
             Position = position;
             CreatedAt = DateTime.UtcNow;
+            UpdatedAt = DateTime.UtcNow;
+        }
+
+        public void Update(string name, int? dayIndex, int position)
+        {
+            Name = name ?? string.Empty;
+            DayIndex = dayIndex;
+            Position = position;
             UpdatedAt = DateTime.UtcNow;
         }
     }

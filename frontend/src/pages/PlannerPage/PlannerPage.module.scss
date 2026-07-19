@@ -110,3 +110,34 @@
   color: var(--text-muted);
   cursor: pointer;
 }
+
+.pinCardDragging {
+  cursor: grabbing;
+}
+
+.pinName {
+  cursor: text;
+  display: inline-block;
+  width: 100%;
+  min-height: 1.2em;
+}
+
+.pinNamePlaceholder {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.pinNameInput {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  outline: none;
+}
+
+.pinListOver {
+  outline: 2px dashed var(--steel);
+  outline-offset: -2px;
+}
