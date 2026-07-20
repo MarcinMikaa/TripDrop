@@ -4,6 +4,7 @@ namespace TripDrop.Application.TripPoints.DTOs
         Guid Id,
         Guid TripId,
         Guid? UserId,
+        string? UserName,
         string Name,
         double Latitude,
         double Longitude,

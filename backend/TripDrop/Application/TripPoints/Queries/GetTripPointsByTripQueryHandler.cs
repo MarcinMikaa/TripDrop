@@ -36,6 +36,7 @@ namespace TripDrop.Application.TripPoints.Queries
                 p.Id,
                 p.TripId,
                 p.UserId,
+                p.User?.Username, 
                 p.Name,
                 p.Latitude,
                 p.Longitude,

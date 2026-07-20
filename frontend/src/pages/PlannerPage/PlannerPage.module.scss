@@ -1,6 +1,10 @@
 .page {
-  width: 100%;
-  height: calc(100svh - var(--header-h));
+  position: fixed;
+  top: var(--header-h);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
 }
 
 .mapContainer {
@@ -138,6 +142,48 @@
 }
 
 .pinListOver {
-  outline: 2px dashed var(--steel);
+  outline: 2px solid var(--steel);
   outline-offset: -2px;
+}
+
+.popup {
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.popupName {
+  font-weight: 600;
+}
+
+.popupMeta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 8px;
+  row-gap: 2px;
+  margin: 0;
+
+  dt { color: var(--text-muted); }
+  dd { margin: 0; }
+}
+
+.popupActions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  button {
+    text-align: left;
+  }
+}
+
+.popupNameInput {
+  width: 100%;
+  border: 1px solid var(--stone);
+  background: transparent;
+  padding: 2px 4px;
+  font: inherit;
+  color: inherit;
+  outline: none;
 }

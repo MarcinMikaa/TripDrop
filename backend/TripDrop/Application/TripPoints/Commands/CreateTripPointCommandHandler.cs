@@ -51,17 +51,20 @@ namespace TripDrop.Application.TripPoints.Commands
             await _tripPointRepository.AddAsync(point, cancellationToken);
             await _tripPointRepository.SaveChangesAsync(cancellationToken);
 
+            var withUser = await _tripPointRepository.GetByIdAsync(point.Id, cancellationToken);
+
             return new TripPointDto(
-                point.Id,
-                point.TripId,
-                point.UserId,
-                point.Name,
-                point.Latitude,
-                point.Longitude,
-                point.DayIndex,
-                point.Position,
-                point.CreatedAt,
-                point.UpdatedAt
+                withUser!.Id,
+                withUser.TripId,
+                withUser.UserId,
+                withUser.User?.Username,
+                withUser.Name,
+                withUser.Latitude,
+                withUser.Longitude,
+                withUser.DayIndex,
+                withUser.Position,
+                withUser.CreatedAt,
+                withUser.UpdatedAt
             );
         }
     }

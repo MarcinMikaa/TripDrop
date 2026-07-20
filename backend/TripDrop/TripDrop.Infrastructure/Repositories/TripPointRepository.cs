@@ -22,6 +22,7 @@ namespace TripDrop.Infrastructure.Repositories
         public async Task<IEnumerable<TripPoint>> GetByTripIdAsync(Guid tripId, CancellationToken cancellationToken)
         {
             return await _dbContext.TripPoints
+                .Include(p => p.User)           
                 .Where(p => p.TripId == tripId)
                 .OrderBy(p => p.DayIndex)
                 .ThenBy(p => p.Position)
@@ -31,6 +32,7 @@ namespace TripDrop.Infrastructure.Repositories
         public async Task<TripPoint?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
         {
             return await _dbContext.TripPoints
+                .Include(p => p.User)    
                 .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
         }
 

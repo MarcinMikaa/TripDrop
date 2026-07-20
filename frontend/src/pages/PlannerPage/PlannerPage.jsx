@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { tripService } from '../../services/TripService';
 import { tripPointService } from '../../services/TripPointService';
-import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
@@ -37,9 +37,18 @@ const DEFAULT_CENTER = [51.4297, 20.1122];
 const DEFAULT_ZOOM = 13;
 const UNASSIGNED_KEY = 'unassigned';
 
+//formater dla popupa
+const dateFormatter = new Intl.DateTimeFormat('pl-PL', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
+//build Koszykow
 const buildBuckets = (startDate, endDate) => {
   const buckets = [{ key: UNASSIGNED_KEY, dayIndex: null, label: 'Nieprzypisane' }];
-
   if (!startDate || !endDate) return buckets;
 
   const start = new Date(startDate);
@@ -48,9 +57,7 @@ const buildBuckets = (startDate, endDate) => {
   end.setHours(0, 0, 0, 0);
 
   const formatter = new Intl.DateTimeFormat('pl-PL', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
+    weekday: 'long', day: 'numeric', month: 'long',
   });
 
   let index = 0;
@@ -81,27 +88,99 @@ const ResizeAware = () => {
   return null;
 };
 
-const MapClickHandler = ({ onMapClick }) => {
+const MapClickHandler = ({ onEmptyClick }) => {
   useMapEvents({
     click(e) {
-      onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
+      if (e.originalEvent?.target?.closest?.('.leaflet-marker-icon')) return;
+      onEmptyClick({ lat: e.latlng.lat, lng: e.latlng.lng });
     },
   });
   return null;
 };
 
-// Pojedyncza pinezka w koszyku
+const MarkerPopupContent = ({ pin, onAddPin, onEdit, onDelete }) => {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(pin.name || '');
+
+  useEffect(() => {
+    if (!editing) setValue(pin.name || '');
+  }, [pin.name, editing]);
+
+  const commit = () => {
+    const trimmed = value.trim();
+    if (trimmed !== (pin.name || '')) onEdit(pin.id, trimmed);
+    setEditing(false);
+  };
+  const cancel = () => {
+    setValue(pin.name || '');
+    setEditing(false);
+  };
+
+  return (
+    <div className={styles.popup}>
+      {editing ? (
+        <input
+          autoFocus
+          className={styles.popupNameInput}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') commit();
+            if (e.key === 'Escape') cancel();
+          }}
+        />
+      ) : (
+        <div className={styles.popupName}>
+          {pin.name?.trim() || <em>Bez nazwy</em>}
+        </div>
+      )}
+      <dl className={styles.popupMeta}>
+        <dt>Dodano:</dt>
+        <dd>{dateFormatter.format(new Date(pin.createdAt))}</dd>
+        <dt>Autor:</dt>
+        <dd>{pin.userName || 'nieznany'}</dd>
+      </dl>
+      <div className={styles.popupActions}>
+        <button type="button" onClick={() => onAddPin(pin.latitude, pin.longitude)}>
+          Dodaj pinezkę
+        </button>
+        <button type="button" onClick={() => setEditing(true)} disabled={editing}>
+          Edytuj pinezkę
+        </button>
+        <button type="button" onClick={() => onDelete(pin.id)}>
+          Usuń pinezkę
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const EmptyContextMenu = ({ position, onAddPin, onClose }) => (
+  <Popup
+    position={[position.lat, position.lng]}
+    eventHandlers={{ remove: onClose }}
+  >
+    <div className={styles.popup}>
+      <div className={styles.popupActions}>
+        <button
+          type="button"
+          onClick={() => onAddPin(position.lat, position.lng)}
+        >
+          Dodaj pinezkę
+        </button>
+      </div>
+    </div>
+  </Popup>
+);
+
+//Pojedyncza pinezka w koszyku
 const PinCard = ({ pin, onRename }) => {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(pin.name || '');
 
   const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
+    attributes, listeners, setNodeRef, transform, transition, isDragging,
   } = useSortable({ id: pin.id, disabled: editing });
 
   const style = {
@@ -115,7 +194,6 @@ const PinCard = ({ pin, onRename }) => {
     if (trimmed !== (pin.name || '')) onRename(pin.id, trimmed);
     setEditing(false);
   };
-
   const cancel = () => {
     setValue(pin.name || '');
     setEditing(false);
@@ -149,10 +227,7 @@ const PinCard = ({ pin, onRename }) => {
       ) : (
         <span
           className={styles.pinName}
-          onClick={(e) => {
-            e.stopPropagation();
-            setEditing(true);
-          }}
+          onClick={(e) => { e.stopPropagation(); setEditing(true); }}
         >
           {pin.name?.trim() || <em className={styles.pinNamePlaceholder}>Bez nazwy</em>}
         </span>
@@ -165,14 +240,12 @@ const PinCard = ({ pin, onRename }) => {
 const Bucket = ({ bucket, pins, onRename }) => {
   const { setNodeRef, isOver } = useDroppable({ id: bucket.key });
   const pinIds = pins.map((p) => p.id);
-
   return (
     <div className={styles.dayColumn}>
       <div className={styles.dayHeader}>
         <span className={styles.dayName}>{bucket.label}</span>
         <span className={styles.dayCount}>{pins.length}</span>
       </div>
-
       <SortableContext items={pinIds} strategy={verticalListSortingStrategy}>
         <div
           ref={setNodeRef}
@@ -181,9 +254,7 @@ const Bucket = ({ bucket, pins, onRename }) => {
           {pins.length === 0 ? (
             <div className={styles.emptyState}>Brak pinezek</div>
           ) : (
-            pins.map((pin) => (
-              <PinCard key={pin.id} pin={pin} onRename={onRename} />
-            ))
+            pins.map((pin) => <PinCard key={pin.id} pin={pin} onRename={onRename} />)
           )}
         </div>
       </SortableContext>
@@ -200,6 +271,9 @@ const PlannerPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Popup context menu (klik w puste miejsce na mapie)
+  const [contextMenuPos, setContextMenuPos] = useState(null);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
@@ -207,7 +281,6 @@ const PlannerPage = () => {
   useEffect(() => {
     if (!tripId) return;
     let cancelled = false;
-
     const fetchAll = async () => {
       setIsLoading(true);
       setError(null);
@@ -226,7 +299,6 @@ const PlannerPage = () => {
         if (!cancelled) setIsLoading(false);
       }
     };
-
     fetchAll();
     return () => { cancelled = true; };
   }, [tripId]);
@@ -250,8 +322,13 @@ const PlannerPage = () => {
     return groups;
   }, [pins, buckets]);
 
- //Dodawanie pinezki po kliku
-  const handleMapClick = async ({ lat, lng }) => {
+  //Pusty klik
+  const handleEmptyMapClick = ({ lat, lng }) => {
+    setContextMenuPos({ lat, lng });
+  };
+
+  const handleCreatePin = async (lat, lng) => {
+    setContextMenuPos(null);
     try {
       const created = await tripPointService.create(tripId, {
         name: '',
@@ -265,7 +342,6 @@ const PlannerPage = () => {
     }
   };
 
-  //Rename pinezki 
   const handleRename = async (pointId, newName) => {
     const target = pins.find((p) => p.id === pointId);
     if (!target) return;
@@ -281,19 +357,28 @@ const PlannerPage = () => {
         position: target.position,
       });
     } catch (err) {
-      setPins(prev); 
+      setPins(prev);
       setError(err.message);
     }
   };
 
-  //DD
+  const handleDelete = async (pointId) => {
+    const prev = pins;
+    setPins((old) => old.filter((p) => p.id !== pointId));
+    try {
+      await tripPointService.delete(tripId, pointId);
+    } catch (err) {
+      setPins(prev);
+      setError(err.message);
+    }
+  };
+
   const handleDragEnd = async (event) => {
     const { active, over } = event;
     if (!over) return;
 
     const activeId = active.id;
     const overId = over.id;
-
     const activePin = pins.find((p) => p.id === activeId);
     if (!activePin) return;
 
@@ -307,7 +392,6 @@ const PlannerPage = () => {
 
     const sourcePins = [...(pinsByBucket[sourceBucketKey] || [])];
     const targetPins = sameBucket ? sourcePins : [...(pinsByBucket[targetBucketKey] || [])];
-
     const overIndexInTarget = overPin
       ? targetPins.findIndex((p) => p.id === overId)
       : targetPins.length;
@@ -334,9 +418,7 @@ const PlannerPage = () => {
       return k !== sourceBucketKey && k !== targetBucketKey;
     });
     const newTarget = reorderedTarget.map((p, i) => ({
-      ...p,
-      dayIndex: targetDayIndex,
-      position: i,
+      ...p, dayIndex: targetDayIndex, position: i,
     }));
     const newSource = reorderedSource
       ? reorderedSource.map((p, i) => ({ ...p, position: i }))
@@ -355,9 +437,7 @@ const PlannerPage = () => {
       await Promise.all(
         changed.map((p) =>
           tripPointService.update(tripId, p.id, {
-            name: p.name,
-            dayIndex: p.dayIndex,
-            position: p.position,
+            name: p.name, dayIndex: p.dayIndex, position: p.position,
           })
         )
       );
@@ -389,9 +469,27 @@ const PlannerPage = () => {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           {pins.map((pin) => (
-            <Marker key={pin.id} position={[pin.latitude, pin.longitude]} />
+            <Marker key={pin.id} position={[pin.latitude, pin.longitude]}>
+              <Popup>
+                <MarkerPopupContent
+                  pin={pin}
+                  onAddPin={handleCreatePin}
+                  onEdit={handleRename}
+                  onDelete={handleDelete}
+                />
+              </Popup>
+            </Marker>
           ))}
-          <MapClickHandler onMapClick={handleMapClick} />
+
+          {contextMenuPos && (
+            <EmptyContextMenu
+              position={contextMenuPos}
+              onAddPin={handleCreatePin}
+              onClose={() => setContextMenuPos(null)}
+            />
+          )}
+
+          <MapClickHandler onEmptyClick={handleEmptyMapClick} />
           <ResizeAware />
         </MapContainer>
       </Panel>
@@ -401,7 +499,7 @@ const PlannerPage = () => {
         <div className={styles.resizeGrip} />
       </PanelResizeHandle>
 
-      {/* DD */}
+      {/* Boxy */}
       <Panel defaultSize={40} minSize={20} className={styles.daysPanel}>
         <DndContext
           sensors={sensors}
