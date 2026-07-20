@@ -1,3 +1,4 @@
+import { NavLink } from 'react-router-dom';
 import styles from './HomePage.module.scss';
 //import TypewriterText from '../utils/typewriter';
 
@@ -13,7 +14,7 @@ export default function HomePage() {
             wypadu ze znajomymi zajmie krótką chwilę.
           </p>
           <div className={styles.heroActions}>
-
+            <NavLink to="/trips/new">
             <button className={styles.btnSun}>
               Utwórz pokój
               <span className={styles.sunRays} aria-hidden="true">
@@ -21,8 +22,10 @@ export default function HomePage() {
                 <span /><span /><span /><span />
               </span>
             </button>
-
-            <button className={styles.btnOutline}>Dodaj znajomych</button>
+            </NavLink>
+            <NavLink to="/friends">
+              <button className={styles.btnOutline}>Dodaj znajomych</button>
+            </NavLink>
           </div>
         </div>
       </section>
@@ -33,13 +36,16 @@ export default function HomePage() {
           <div className={styles.ctaTitle}>Jesteś nowy?</div>
 
           <div className={styles.ctaRow}>
+            <NavLink to="/register">
             <button className={styles.btnRegister}>Zarejestruj się</button>
+            </NavLink>
             <p className={styles.ctaText}>By wygodnie planować swoją podróż</p>
           </div>
-
           <div className={styles.ctaRowBottom}>
             <p className={styles.ctaTextBottom}>Aby finalizować swoje wakacje.</p>
+            <NavLink to="/login">
             <button className={styles.btnLogin}>Zaloguj się</button>
+            </NavLink>
           </div>
 
         </div>

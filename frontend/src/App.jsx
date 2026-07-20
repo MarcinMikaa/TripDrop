@@ -53,7 +53,7 @@ function App() {
           }
         />
 
-        <Route path="/planner" 
+        <Route path="/planner/:id" 
           element={
             <ProtectedRoute>
               <PlannerPage />

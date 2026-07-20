@@ -112,12 +112,10 @@ const LoginPage = () => {
                 required
               />
             </div>
-
             <button type="submit" className={styles.submitBtn} disabled={isLoading}>
               {isLoading ? 'Logowanie...' : 'Zaloguj się'}
             </button>
           </form>
-
           <p className={styles.switchLink}>
             Nie masz konta? <span onClick={() => navigate('/register')}>Zarejestruj się</span>
           </p>

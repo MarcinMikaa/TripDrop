@@ -47,12 +47,14 @@ export default function Navbar() {
                   Wycieczki
                 </NavLink>
               </li>
+              {/*
               <li>
                 <NavLink to="/planner" className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ''}`}>
                   Planer
                 </NavLink>
               </li>
-            </>
+              */}
+              </>
           )}
         </ul>
 

@@ -1,2 +1,189 @@
+.page {
+  position: fixed;
+  top: var(--header-h);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+}
 
+.mapContainer {
+  border: 1px solid var(--stone);
+}
 
+.map {
+  width: 100%;
+  height: 100%;
+}
+
+.resizeHandle {
+  width: 6px;
+  background: var(--steel);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  &::after
+  {
+    content: "";
+    position: absolute;
+    width: 10px;
+    height: 32px;
+    background: var(--amber);
+    transition: all 0.3s;
+  }
+  &:hover::after
+  {
+    height: 100vh;
+  }
+}
+
+.daysList {
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--stone);
+  border: 1px solid var(--stone);
+}
+
+.dayColumn {
+  display: flex;
+  flex-direction: column;
+  background: var(--steel-light);
+  border: 1px solid var(--stone);
+  border-radius: var(--radius);
+  padding: 12px;
+  gap: 12px;
+}
+
+.dayHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--stone);
+}
+
+.dayName {
+  font-weight: 600;
+}
+
+.dayCount {
+  min-width: 24px;
+  padding: 2px 8px;
+  text-align: center;
+  background: var(--stone);
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.pinList {
+  display: flex;
+  flex-direction: column;
+  min-height: 60px;
+  gap: 8px;
+  background: var(--stone-light);
+}
+
+.pinCard {
+  padding: 10px 12px;
+  background: var(--stone-light);
+  border: 1px solid var(--stone);
+  border-radius: var(--radius-sm);
+  cursor: grab;
+}
+
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.addPinBtn {
+  width: 100%;
+  padding: 8px;
+  background: var(--linen);
+  border: 1px dashed var(--stone);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.pinCardDragging {
+  cursor: grabbing;
+}
+
+.pinName {
+  cursor: text;
+  display: inline-block;
+  width: 100%;
+  min-height: 1.2em;
+}
+
+.pinNamePlaceholder {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.pinNameInput {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  outline: none;
+}
+
+.pinListOver {
+  outline: 2px solid var(--steel);
+  outline-offset: -2px;
+}
+
+.popup {
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.popupName {
+  font-weight: 600;
+}
+
+.popupMeta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 8px;
+  row-gap: 2px;
+  margin: 0;
+
+  dt { color: var(--text-muted); }
+  dd { margin: 0; }
+}
+
+.popupActions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  button {
+    text-align: left;
+  }
+}
+
+.popupNameInput {
+  width: 100%;
+  border: 1px solid var(--stone);
+  background: transparent;
+  padding: 2px 4px;
+  font: inherit;
+  color: inherit;
+  outline: none;
+}
