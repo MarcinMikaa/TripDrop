@@ -18,7 +18,9 @@ namespace TripDrop.Api
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
             builder.Services.AddDbContext<TripDropDbContext>(options =>
-                options.UseNpgsql(connectionString));
+                options.UseNpgsql(connectionString, npgsqlOptions =>
+                    npgsqlOptions.UseNetTopologySuite()
+                ));
 
             builder.Services.AddMediatR(cfg =>
             {
