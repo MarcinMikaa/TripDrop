@@ -91,8 +91,9 @@ namespace TripDrop.Infrastructure.Persistence
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
-                entity.Property(e => e.Latitude).IsRequired();
-                entity.Property(e => e.Longitude).IsRequired();
+                entity.Property(e => e.Location)
+                    .HasColumnType("geography (Point, 4326)")
+                    .IsRequired();
                 entity.Property(e => e.Position).IsRequired();
                 entity.Property(e => e.DayIndex).IsRequired(false);
                 entity.Property(e => e.CreatedAt).IsRequired();
@@ -109,6 +110,7 @@ namespace TripDrop.Infrastructure.Persistence
                     .OnDelete(DeleteBehavior.SetNull);
 
                 entity.HasIndex(e => e.TripId);
+                entity.HasIndex(e => e.Location).HasMethod("GIST");
             });
         }
     }

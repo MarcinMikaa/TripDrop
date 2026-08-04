@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using NetTopologySuite.Geometries;
 namespace TripDrop.Domain.Entities
 {
     public class TripPoint
@@ -11,8 +12,7 @@ namespace TripDrop.Domain.Entities
         public Guid TripId { get; private set; }
         public Guid? UserId { get; private set; }
         public string Name { get; private set; } = string.Empty;
-        public double Latitude { get; private set; }
-        public double Longitude { get; private set; }
+        public Point Location { get; private set; } = null!;
         public int? DayIndex { get; private set; }
         public int Position { get; private set; }
         public DateTime CreatedAt { get; private set; }
@@ -36,8 +36,7 @@ namespace TripDrop.Domain.Entities
             TripId = tripId;
             UserId = userId;
             Name = name ?? string.Empty;
-            Latitude = latitude;
-            Longitude = longitude;
+            Location = new Point(longitude, latitude) { SRID = 4326 };
             DayIndex = dayIndex;
             Position = position;
             CreatedAt = DateTime.UtcNow;
@@ -51,6 +50,8 @@ namespace TripDrop.Domain.Entities
             Position = position;
             UpdatedAt = DateTime.UtcNow;
         }
+        public double Latitude => Location.Y;
+        public double Longitude => Location.X;
     }
 }
 
