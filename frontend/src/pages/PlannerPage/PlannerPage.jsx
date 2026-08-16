@@ -1,10 +1,16 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { tripService } from '../../services/TripService';
 import { tripPointService } from '../../services/TripPointService';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import 'leaflet/dist/leaflet.css'; 
+window.L = L;
+import 'leaflet-providers';
+import 'leaflet.locatecontrol';
+import 'leaflet.locatecontrol/dist/L.Control.Locate.min.css';
+import 'leaflet-easybutton';
+import 'leaflet-easybutton/src/easy-button.css';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
 import {
   DndContext,
@@ -95,6 +101,71 @@ const MapClickHandler = ({ onEmptyClick }) => {
       onEmptyClick({ lat: e.latlng.lat, lng: e.latlng.lng });
     },
   });
+  return null;
+};
+//Warstwy map
+const BaseLayersControl = () => {
+  const map = useMap();
+  useEffect(() => {
+    const baseLayers = {
+      'Domyślna': L.tileLayer.provider('OpenStreetMap.Mapnik'),
+      'Satelita': L.tileLayer.provider('Esri.WorldImagery'),
+      'Topograficzna': L.tileLayer.provider('OpenTopoMap'),
+      'Ciemna': L.tileLayer.provider('CartoDB.DarkMatter'),
+    };
+    baseLayers['Domyślna'].addTo(map);
+    const control = L.control.layers(baseLayers, null, { position: 'topright' }).addTo(map);
+
+    return () => {
+      map.removeControl(control);
+      Object.values(baseLayers).forEach((layer) => {
+        if (map.hasLayer(layer)) map.removeLayer(layer);
+      });
+    };
+  }, [map]);
+  return null;
+};
+
+//Znajdz mnie
+/*
+const LocateControl = () => {
+  const map = useMap();
+  useEffect(() => {
+    const lc = L.control.locate({
+      position: 'topleft',
+      strings: {
+        title: 'Pokaż moją lokalizację',
+        popup: 'Twoja lokalizacja z dokładnością do {distance} {unit}',
+        outsideMapBoundsMsg: 'Jesteś poza granicami mapy',
+      },
+      locateOptions: { maxZoom: 15 },
+      flyTo: true,
+      showPopup: false,
+    }).addTo(map);
+    return () => map.removeControl(lc);
+  }, [map]);
+  return null;
+};
+*/
+const FitToPinsButton = ({ pins }) => {
+  const map = useMap();
+  const pinsRef = useRef(pins);
+  useEffect(() => { pinsRef.current = pins; }, [pins]);
+
+  useEffect(() => {
+    const btn = L.easyButton(
+      '<i class="fas fa-crosshairs" style="line-height:30px;font-size:14px;"></i>',
+      () => {
+        const current = pinsRef.current;
+        if (!current || current.length === 0) return;
+        const bounds = L.latLngBounds(current.map((p) => [p.latitude, p.longitude]));
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+      },
+      'Wyśrodkuj na pinezkach'
+    ).addTo(map);
+    return () => map.removeControl(btn);
+  }, [map]);
+
   return null;
 };
 
@@ -452,74 +523,74 @@ const PlannerPage = () => {
   if (!trip) return <div className={styles.status}>Nie znaleziono wycieczki.</div>;
 
   return (
-    <PanelGroup
-      direction="horizontal"
-      autoSaveId="planner-layout"
-      className={styles.page}
-    >
-      {/* Mapa */}
-      <Panel defaultSize={60} minSize={30}>
-        <MapContainer
-          center={DEFAULT_CENTER}
-          zoom={DEFAULT_ZOOM}
-          className={styles.map}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          {pins.map((pin) => (
-            <Marker key={pin.id} position={[pin.latitude, pin.longitude]}>
-              <Popup>
-                <MarkerPopupContent
-                  pin={pin}
-                  onAddPin={handleCreatePin}
-                  onEdit={handleRename}
-                  onDelete={handleDelete}
-                />
-              </Popup>
-            </Marker>
-          ))}
-
-          {contextMenuPos && (
-            <EmptyContextMenu
-              position={contextMenuPos}
-              onAddPin={handleCreatePin}
-              onClose={() => setContextMenuPos(null)}
-            />
-          )}
-
-          <MapClickHandler onEmptyClick={handleEmptyMapClick} />
-          <ResizeAware />
-        </MapContainer>
-      </Panel>
-
-      {/* Bar */}
-      <PanelResizeHandle className={styles.resizeHandle}>
-        <div className={styles.resizeGrip} />
-      </PanelResizeHandle>
-
-      {/* Boxy */}
-      <Panel defaultSize={40} minSize={20} className={styles.daysPanel}>
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCorners}
-          onDragEnd={handleDragEnd}
-        >
-          <div className={styles.daysList}>
-            {buckets.map((bucket) => (
-              <Bucket
-                key={bucket.key}
-                bucket={bucket}
-                pins={pinsByBucket[bucket.key] || []}
-                onRename={handleRename}
-              />
+      <PanelGroup
+        direction="horizontal"
+        autoSaveId="planner-layout"
+        className={styles.page}
+      >
+        {/* Mapa */}
+        <Panel defaultSize={60} minSize={30}>
+          <MapContainer
+            center={DEFAULT_CENTER}
+            zoom={DEFAULT_ZOOM}
+            className={styles.map}
+          >
+            <BaseLayersControl />
+            {/* <LocateControl /> */}
+            <FitToPinsButton pins={pins} />
+  
+            {pins.map((pin) => (
+              <Marker key={pin.id} position={[pin.latitude, pin.longitude]}>
+                <Popup>
+                  <MarkerPopupContent
+                    pin={pin}
+                    onAddPin={handleCreatePin}
+                    onEdit={handleRename}
+                    onDelete={handleDelete}
+                  />
+                </Popup>
+              </Marker>
             ))}
-          </div>
-        </DndContext>
-      </Panel>
-    </PanelGroup>
-  );
+  
+            {contextMenuPos && (
+              <EmptyContextMenu
+                position={contextMenuPos}
+                onAddPin={handleCreatePin}
+                onClose={() => setContextMenuPos(null)}
+              />
+            )}
+  
+            <MapClickHandler onEmptyClick={handleEmptyMapClick} />
+            <ResizeAware />
+          </MapContainer>
+        </Panel>
+  
+        {/* Bar */}
+        <PanelResizeHandle className={styles.resizeHandle}>
+          <div className={styles.resizeGrip} />
+        </PanelResizeHandle>
+  
+        {/* Boxy */}
+        <Panel defaultSize={40} minSize={20} className={styles.daysPanel}>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCorners}
+            onDragEnd={handleDragEnd}
+          >
+            <div className={styles.daysList}>
+              {buckets.map((bucket) => (
+                <Bucket
+                  key={bucket.key}
+                  bucket={bucket}
+                  pins={pinsByBucket[bucket.key] || []}
+                  onRename={handleRename}
+                />
+              ))}
+            </div>
+          </DndContext>
+        </Panel>
+      </PanelGroup>
+    );
 };
 
 export default PlannerPage;
