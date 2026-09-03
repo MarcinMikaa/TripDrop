@@ -2,12 +2,11 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { tripService } from '../../services/TripService';
 import { tripPointService } from '../../services/TripPointService';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
+import { MapContainer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import 'leaflet/dist/leaflet.css'; 
-window.L = L;
+import 'leaflet/dist/leaflet.css';
 import 'leaflet-providers';
-import 'leaflet.locatecontrol';
+import { LocateControl } from 'leaflet.locatecontrol';
 import 'leaflet.locatecontrol/dist/L.Control.Locate.min.css';
 import 'leaflet-easybutton';
 import 'leaflet-easybutton/src/easy-button.css';
@@ -103,6 +102,7 @@ const MapClickHandler = ({ onEmptyClick }) => {
   });
   return null;
 };
+
 //Warstwy map
 const BaseLayersControl = () => {
   const map = useMap();
@@ -127,26 +127,51 @@ const BaseLayersControl = () => {
 };
 
 //Znajdz mnie
-/*
-const LocateControl = () => {
+const LocateButton = () => {
   const map = useMap();
+
   useEffect(() => {
-    const lc = L.control.locate({
-      position: 'topleft',
-      strings: {
-        title: 'Pokaż moją lokalizację',
-        popup: 'Twoja lokalizacja z dokładnością do {distance} {unit}',
-        outsideMapBoundsMsg: 'Jesteś poza granicami mapy',
-      },
-      locateOptions: { maxZoom: 15 },
-      flyTo: true,
-      showPopup: false,
-    }).addTo(map);
-    return () => map.removeControl(lc);
+    let control;
+    try {
+      control = new LocateControl({
+        position: 'topleft',
+        flyTo: true,
+        showPopup: false,
+        drawCircle: true,
+        setView: 'once',
+        locateOptions: {
+          maxZoom: 15,
+          enableHighAccuracy: true,
+        },
+        strings: {
+          title: 'Pokaż moją lokalizację',
+          metersUnit: 'metrów',
+          feetUnit: 'stóp',
+          popup: 'Twoja lokalizacja z dokładnością do {distance} {unit}',
+          outsideMapBoundsMsg: 'Jesteś poza granicami mapy',
+        },
+        onLocationError: (err) => {
+          console.warn('[locate] Nie udało się ustalić lokalizacji:', err?.message ?? err);
+        },
+      });
+
+      control.addTo(map);
+    } catch (err) {
+      console.error('[locate] Kontrolka lokalizacji niedostępna:', err);
+      return undefined;
+    }
+
+    return () => {
+      try {
+        map.removeControl(control);
+      } catch {
+      }
+    };
   }, [map]);
+
   return null;
 };
-*/
+
 const FitToPinsButton = ({ pins }) => {
   const map = useMap();
   const pinsRef = useRef(pins);
@@ -536,7 +561,7 @@ const PlannerPage = () => {
             className={styles.map}
           >
             <BaseLayersControl />
-            {/* <LocateControl /> */}
+            <LocateButton />
             <FitToPinsButton pins={pins} />
   
             {pins.map((pin) => (
