@@ -8,6 +8,8 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet-providers';
 import { LocateControl } from 'leaflet.locatecontrol';
 import 'leaflet.locatecontrol/dist/L.Control.Locate.min.css';
+import { GeoSearchControl, OpenStreetMapProvider } from 'leaflet-geosearch';
+import 'leaflet-geosearch/dist/geosearch.css';
 import 'leaflet-easybutton';
 import 'leaflet-easybutton/src/easy-button.css';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
@@ -41,6 +43,7 @@ L.Icon.Default.mergeOptions({
 const DEFAULT_CENTER = [51.4297, 20.1122];
 const DEFAULT_ZOOM = 13;
 const UNASSIGNED_KEY = 'unassigned';
+const MAX_PIN_NAME_LENGTH = 200;
 
 //formater dla popupa
 const dateFormatter = new Intl.DateTimeFormat('pl-PL', {
@@ -164,7 +167,76 @@ const LocateButton = () => {
     return () => {
       try {
         map.removeControl(control);
-      } catch {
+      } catch (removeErr) {
+        console.warn('[locate] Nie udało się usunąć kontrolki:', removeErr?.message ?? removeErr);
+      }
+    };
+  }, [map]);
+
+  return null;
+};
+
+const pickPlaceName = (label) => {
+  if (!label) return '';
+  const parts = String(label)
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (parts.length === 0) return '';
+
+  let name = parts[0];
+  if (/^\d+[a-zA-Z]?$/.test(name) && parts.length > 1) {
+    name = `${parts[1]} ${parts[0]}`;
+  }
+  return name.slice(0, MAX_PIN_NAME_LENGTH);
+};
+
+const GeoSearchField = ({ onResult }) => {
+  const map = useMap();
+  const onResultRef = useRef(onResult);
+  useEffect(() => { onResultRef.current = onResult; }, [onResult]);
+
+  useEffect(() => {
+    let control;
+    try {
+      control = new GeoSearchControl({
+        provider: new OpenStreetMapProvider({
+          params: { 'accept-language': 'pl' },
+        }),
+        style: 'bar',
+        position: 'topleft',
+        showMarker: false,
+        showPopup: false,
+        autoClose: true,
+        keepResult: false,
+        retainZoomLevel: false,
+        animateZoom: true,
+        autoComplete: true,
+        autoCompleteDelay: 400,
+        searchLabel: 'Szukaj miejsca...',
+        notFoundMessage: 'Nie znaleziono takiego miejsca.',
+      });
+
+      map.addControl(control);
+    } catch (err) {
+      console.error('[geosearch] Wyszukiwarka niedostępna:', err);
+      return undefined;
+    }
+
+    const handleShowLocation = (event) => {
+      const location = event?.location;
+      if (!location) return;
+      onResultRef.current?.(location.y, location.x, pickPlaceName(location.label));
+    };
+
+    map.on('geosearch/showlocation', handleShowLocation);
+
+    return () => {
+      map.off('geosearch/showlocation', handleShowLocation);
+      try {
+        map.removeControl(control);
+      } catch (removeErr) {
+        console.warn('[geosearch] Nie udało się usunąć kontrolki:', removeErr?.message ?? removeErr);
       }
     };
   }, [map]);
@@ -258,10 +330,13 @@ const EmptyContextMenu = ({ position, onAddPin, onClose }) => (
     eventHandlers={{ remove: onClose }}
   >
     <div className={styles.popup}>
+      {position.name ? (
+        <div className={styles.popupName}>{position.name}</div>
+      ) : null}
       <div className={styles.popupActions}>
         <button
           type="button"
-          onClick={() => onAddPin(position.lat, position.lng)}
+          onClick={() => onAddPin(position.lat, position.lng, position.name || '')}
         >
           Dodaj pinezkę
         </button>
@@ -423,11 +498,15 @@ const PlannerPage = () => {
     setContextMenuPos({ lat, lng });
   };
 
-  const handleCreatePin = async (lat, lng) => {
+  const handleSearchResult = (lat, lng, name) => {
+    setContextMenuPos({ lat, lng, name });
+  };
+
+  const handleCreatePin = async (lat, lng, name = '') => {
     setContextMenuPos(null);
     try {
       const created = await tripPointService.create(tripId, {
-        name: '',
+        name,
         latitude: lat,
         longitude: lng,
         dayIndex: null,
@@ -562,6 +641,7 @@ const PlannerPage = () => {
           >
             <BaseLayersControl />
             <LocateButton />
+            <GeoSearchField onResult={handleSearchResult} />
             <FitToPinsButton pins={pins} />
   
             {pins.map((pin) => (
