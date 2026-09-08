@@ -12,6 +12,9 @@ import { GeoSearchControl, OpenStreetMapProvider } from 'leaflet-geosearch';
 import 'leaflet-geosearch/dist/geosearch.css';
 import 'leaflet-easybutton';
 import 'leaflet-easybutton/src/easy-button.css';
+import 'leaflet.awesome-markers';
+import 'leaflet.awesome-markers/dist/leaflet.awesome-markers.css';
+import '@fortawesome/fontawesome-free/css/v4-shims.min.css';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
 import {
   DndContext,
@@ -44,6 +47,48 @@ const DEFAULT_CENTER = [51.4297, 20.1122];
 const DEFAULT_ZOOM = 13;
 const UNASSIGNED_KEY = 'unassigned';
 const MAX_PIN_NAME_LENGTH = 200;
+
+const DAY_MARKER_COLORS = [
+  'blue',
+  'green',
+  'orange',
+  'purple',
+  'red',
+  'cadetblue',
+  'darkgreen',
+  'darkblue',
+  'darkpurple',
+  'darkred',
+];
+const UNASSIGNED_MARKER_COLOR = 'gray';
+const ENDPOINT_MARKER_ICON = 'flag';
+const MIDPOINT_MARKER_ICON = 'circle';
+const POPUP_CLOSE_CLICK_GRACE_MS = 150;
+
+const markerIconCache = new Map();
+
+const markerColorForDay = (dayIndex) =>
+  dayIndex === null || dayIndex === undefined
+    ? UNASSIGNED_MARKER_COLOR
+    : DAY_MARKER_COLORS[dayIndex % DAY_MARKER_COLORS.length];
+
+const getPinIcon = (dayIndex, isEndpoint) => {
+  const markerColor = markerColorForDay(dayIndex);
+  const icon = isEndpoint ? ENDPOINT_MARKER_ICON : MIDPOINT_MARKER_ICON;
+  const cacheKey = `${markerColor}:${icon}`;
+  if (!markerIconCache.has(cacheKey)) {
+    markerIconCache.set(
+      cacheKey,
+      L.AwesomeMarkers.icon({
+        icon,
+        prefix: 'fa',
+        markerColor,
+        iconColor: 'white',
+      })
+    );
+  }
+  return markerIconCache.get(cacheKey);
+};
 
 //formater dla popupa
 const dateFormatter = new Intl.DateTimeFormat('pl-PL', {
@@ -96,10 +141,26 @@ const ResizeAware = () => {
   return null;
 };
 
-const MapClickHandler = ({ onEmptyClick }) => {
+const MapClickHandler = ({ onEmptyClick, contextMenuOpen }) => {
+  const contextMenuOpenRef = useRef(contextMenuOpen);
+  const markerPopupClosedAtRef = useRef(0);
+
+  useEffect(() => {
+    contextMenuOpenRef.current = contextMenuOpen;
+  }, [contextMenuOpen]);
+
   useMapEvents({
+    popupclose() {
+      if (!contextMenuOpenRef.current) {
+        markerPopupClosedAtRef.current = Date.now();
+      }
+    },
     click(e) {
       if (e.originalEvent?.target?.closest?.('.leaflet-marker-icon')) return;
+      if (Date.now() - markerPopupClosedAtRef.current < POPUP_CLOSE_CLICK_GRACE_MS) {
+        markerPopupClosedAtRef.current = 0;
+        return;
+      }
       onEmptyClick({ lat: e.latlng.lat, lng: e.latlng.lng });
     },
   });
@@ -288,18 +349,28 @@ const MarkerPopupContent = ({ pin, onAddPin, onEdit, onDelete }) => {
     <div className={styles.popup}>
       {editing ? (
         <input
+          type="text"
           autoFocus
+          maxLength={MAX_PIN_NAME_LENGTH}
           className={styles.popupNameInput}
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onBlur={commit}
+          onPointerDown={(e) => e.stopPropagation()}
           onKeyDown={(e) => {
             if (e.key === 'Enter') commit();
             if (e.key === 'Escape') cancel();
           }}
         />
       ) : (
-        <div className={styles.popupName}>
+        <div
+          className={styles.popupName}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            setEditing(true);
+          }}
+        >
           {pin.name?.trim() || <em>Bez nazwy</em>}
         </div>
       )}
@@ -312,9 +383,6 @@ const MarkerPopupContent = ({ pin, onAddPin, onEdit, onDelete }) => {
       <div className={styles.popupActions}>
         <button type="button" onClick={() => onAddPin(pin.latitude, pin.longitude)}>
           Dodaj pinezkę
-        </button>
-        <button type="button" onClick={() => setEditing(true)} disabled={editing}>
-          Edytuj pinezkę
         </button>
         <button type="button" onClick={() => onDelete(pin.id)}>
           Usuń pinezkę
@@ -493,6 +561,18 @@ const PlannerPage = () => {
     return groups;
   }, [pins, buckets]);
 
+  const endpointPinIds = useMemo(() => {
+    const ids = new Set();
+    buckets.forEach((bucket) => {
+      if (bucket.dayIndex === null) return;
+      const group = pinsByBucket[bucket.key] || [];
+      if (group.length === 0) return;
+      ids.add(group[0].id);
+      ids.add(group[group.length - 1].id);
+    });
+    return ids;
+  }, [buckets, pinsByBucket]);
+
   //Pusty klik
   const handleEmptyMapClick = ({ lat, lng }) => {
     setContextMenuPos({ lat, lng });
@@ -645,7 +725,11 @@ const PlannerPage = () => {
             <FitToPinsButton pins={pins} />
   
             {pins.map((pin) => (
-              <Marker key={pin.id} position={[pin.latitude, pin.longitude]}>
+              <Marker
+                key={pin.id}
+                position={[pin.latitude, pin.longitude]}
+                icon={getPinIcon(pin.dayIndex, endpointPinIds.has(pin.id))}
+              >
                 <Popup>
                   <MarkerPopupContent
                     pin={pin}
@@ -665,7 +749,10 @@ const PlannerPage = () => {
               />
             )}
   
-            <MapClickHandler onEmptyClick={handleEmptyMapClick} />
+            <MapClickHandler
+              onEmptyClick={handleEmptyMapClick}
+              contextMenuOpen={contextMenuPos !== null}
+            />
             <ResizeAware />
           </MapContainer>
         </Panel>
