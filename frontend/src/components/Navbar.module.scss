@@ -56,7 +56,6 @@
   &:hover {
     color: var(--nav-text-active);
     background: var(--nav-hover-bg);
-
   }
 }
 
@@ -120,7 +119,7 @@
   top: calc(100% + 6px);
   right: 0;
   background: var(--obsidian);
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius);
   min-width: 160px;
   list-style: none;
@@ -146,11 +145,10 @@
   color: #f87171;
 
   &:hover {
-    background: rgba(248, 113, 113, 0.10);
+    background: rgba(248, 113, 113, 0.1);
     color: #fca5a5;
   }
 }
-
 
 .authLinks {
   display: flex;
@@ -169,14 +167,14 @@
   font-weight: 600;
   text-decoration: none;
   display: inline-block;
-  transition: all 0.2s; 
+  transition: all 0.2s;
 
   &:hover {
     background: var(--amber-dark);
     border-color: var(--amber-dark);
     color: var(--obsidian);
     transform: translateY(-1px);
-    box-shadow: 0 0 0 3px rgba(200, 168, 130, 0.30);
+    box-shadow: 0 0 0 3px rgba(200, 168, 130, 0.3);
   }
 }
 
@@ -189,7 +187,10 @@
   border-radius: var(--radius-sm);
   color: var(--nav-text);
   font-size: 1.3rem;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
+  position: relative;
 
   &:hover {
     background: var(--nav-hover-bg);
@@ -199,4 +200,22 @@
   &.active {
     color: var(--nav-text-active);
   }
+}
+
+.badge {
+  position: absolute;
+  top: -2px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 99px;
+  background: var(--amber);
+  color: var(--obsidian);
+  font-size: 0.7rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }

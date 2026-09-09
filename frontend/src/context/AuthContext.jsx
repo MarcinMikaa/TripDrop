@@ -22,6 +22,7 @@ export const AuthProvider = ({ children }) => {
   const login = useCallback(async (email, password) => {
     const data = await authService.login(email, password);
     localStorage.setItem('jwt_token', data.token);
+    localStorage.setItem('supabase_token', data.supabaseToken);
     localStorage.setItem('auth_user', JSON.stringify(data.user));
     setToken(data.token);
     setUser(data.user);
@@ -33,6 +34,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = useCallback(() => {
     localStorage.removeItem('jwt_token');
+    localStorage.removeItem('supabase_token');
     localStorage.removeItem('auth_user');
     setToken(null);
     setUser(null);
