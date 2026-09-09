@@ -2,6 +2,7 @@ using MediatR;
 using TripDrop.Application.TripPoints.DTOs;
 using TripDrop.Domain.Entities;
 using TripDrop.Domain.Repositories;
+using TripDrop.Application.Common;
 
 namespace TripDrop.Application.TripPoints.Commands
 {
@@ -9,13 +10,16 @@ namespace TripDrop.Application.TripPoints.Commands
     {
         private readonly ITripPointRepository _tripPointRepository;
         private readonly ITripRepository _tripRepository;
+        private readonly IRealtimeNotifier _realtimeNotifier;
 
         public CreateTripPointCommandHandler(
             ITripPointRepository tripPointRepository,
-            ITripRepository tripRepository)
+            ITripRepository tripRepository,
+            IRealtimeNotifier realtimeNotifier)
         {
             _tripPointRepository = tripPointRepository;
             _tripRepository = tripRepository;
+            _realtimeNotifier = realtimeNotifier;
         }
 
         public async Task<TripPointDto> Handle(CreateTripPointCommand request, CancellationToken cancellationToken)
@@ -50,6 +54,7 @@ namespace TripDrop.Application.TripPoints.Commands
 
             await _tripPointRepository.AddAsync(point, cancellationToken);
             await _tripPointRepository.SaveChangesAsync(cancellationToken);
+            await _realtimeNotifier.NotifyTripPointsChangedAsync(request.TripId, cancellationToken);
 
             var withUser = await _tripPointRepository.GetByIdAsync(point.Id, cancellationToken);
 
