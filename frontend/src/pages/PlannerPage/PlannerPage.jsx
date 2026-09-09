@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { tripService } from '../../services/TripService';
 import { tripPointService } from '../../services/TripPointService';
@@ -31,6 +31,7 @@ import styles from './PlannerPage.module.scss';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+import { useTripPointsRealtime } from '../../hooks/useTripPointsRealtime';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -373,6 +374,18 @@ const PlannerPage = () => {
     fetchAll();
     return () => { cancelled = true; };
   }, [tripId]);
+  
+
+  const refetchPins = useCallback(async () => {
+    try {
+      const data = await tripPointService.getByTripId(tripId);
+      setPins(data);
+    } catch (err) {
+      setError(err.message);
+    }
+  }, [tripId]);
+
+  useTripPointsRealtime(tripId, refetchPins);
 
   const buckets = useMemo(
     () => buildBuckets(trip?.startDate, trip?.endDate),
