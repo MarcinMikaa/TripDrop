@@ -1,5 +1,7 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import { friendshipService } from '../services/FriendshipService';
+import { useFriendRequestsRealtime } from '../hooks/useFriendRequestsRealtime';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import useAuth from '../hooks/useAuth';
 import styles from './Navbar.module.scss';
@@ -9,6 +11,7 @@ export default function Navbar() {
   const navigate = useNavigate();
   const dropdownRef = useRef(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -19,6 +22,22 @@ export default function Navbar() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const refetchPending = useCallback(async () => {
+    if (!isAuthenticated) return;
+    try {
+      const data = await friendshipService.getPending();
+      setPendingCount(data.length);
+    } catch {
+      // cichy błąd — licznik nie jest krytyczny
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    refetchPending();
+  }, [refetchPending]);
+
+  useFriendRequestsRealtime(user?.id, refetchPending);
 
   const handleLogout = () => {
     logout();
@@ -54,7 +73,7 @@ export default function Navbar() {
                 </NavLink>
               </li>
               */}
-              </>
+            </>
           )}
         </ul>
 
@@ -64,8 +83,9 @@ export default function Navbar() {
               <NavLink
                 to="/friends"
                 className={({ isActive }) => `${styles.iconLink} ${isActive ? styles.active : ''}`}
-                aria-label="Znajomi">
+                aria-label={pendingCount > 0 ? `Znajomi, ${pendingCount} nowych zaproszeń` : 'Znajomi'}>
                 <FontAwesomeIcon icon="users" />
+                {pendingCount > 0 && <span className={styles.badge}>{pendingCount}</span>}
               </NavLink>
 
               <div className={styles.userMenu} ref={dropdownRef}>

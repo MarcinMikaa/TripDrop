@@ -40,8 +40,10 @@ namespace TripDrop.Api.Controllers
                 return Ok(new
                 {
                     token = result.Token,
+                    supabaseToken = result.SupabaseToken,
                     user = new
                     {
+                        id = result.UserId,
                         username = result.Username
                     }
                 });

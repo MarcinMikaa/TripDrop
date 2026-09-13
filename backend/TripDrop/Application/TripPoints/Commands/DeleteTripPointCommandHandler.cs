@@ -1,5 +1,7 @@
 using MediatR;
+using TripDrop.Domain.Entities;
 using TripDrop.Domain.Repositories;
+using TripDrop.Application.Common;
 
 namespace TripDrop.Application.TripPoints.Commands
 {
@@ -7,13 +9,16 @@ namespace TripDrop.Application.TripPoints.Commands
     {
         private readonly ITripPointRepository _tripPointRepository;
         private readonly ITripRepository _tripRepository;
+        private readonly IRealtimeNotifier _realtimeNotifier;
 
         public DeleteTripPointCommandHandler(
             ITripPointRepository tripPointRepository,
-            ITripRepository tripRepository)
+            ITripRepository tripRepository,
+            IRealtimeNotifier realtimeNotifier)
         {
             _tripPointRepository = tripPointRepository;
             _tripRepository = tripRepository;
+            _realtimeNotifier = realtimeNotifier;
         }
 
         public async Task<Unit> Handle(DeleteTripPointCommand request, CancellationToken cancellationToken)
@@ -34,8 +39,11 @@ namespace TripDrop.Application.TripPoints.Commands
             if (!hasAccess)
                 throw new UnauthorizedAccessException("Brak dostępu do tej wycieczki.");
 
+            var tripId = point.TripId;
+
             await _tripPointRepository.DeleteAsync(request.TripPointId, cancellationToken);
             await _tripPointRepository.SaveChangesAsync(cancellationToken);
+            await _realtimeNotifier.NotifyTripPointsChangedAsync(tripId, cancellationToken);
 
             return Unit.Value;
         }

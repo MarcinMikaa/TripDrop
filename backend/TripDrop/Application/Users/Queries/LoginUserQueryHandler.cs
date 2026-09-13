@@ -41,7 +41,7 @@ namespace TripDrop.Application.Users.Queries
 
                 var token = GenerateJwt(user.Id, user.Email, user.Username);
 
-                return new LoginResponse(token, user.Username);
+                return new LoginResponse(user.Id, token, user.Username, session.AccessToken);
             }
             catch (GotrueException)
             {

@@ -1,6 +1,7 @@
 ﻿using MediatR;
 using TripDrop.Domain.Entities;
 using TripDrop.Domain.Repositories;
+using TripDrop.Application.Common;
 
 namespace TripDrop.Application.Friendships.Commands
 {
@@ -8,13 +9,16 @@ namespace TripDrop.Application.Friendships.Commands
     {
         private readonly IFriendshipRepository _friendshipRepository;
         private readonly IUserRepository _userRepository;
+        private readonly IRealtimeNotifier _realtimeNotifier;
 
         public SendFriendRequestCommandHandler(
             IFriendshipRepository friendshipRepository,
-            IUserRepository userRepository)
+            IUserRepository userRepository,
+            IRealtimeNotifier realtimeNotifier)
         {
             _friendshipRepository = friendshipRepository;
             _userRepository = userRepository;
+            _realtimeNotifier = realtimeNotifier;
         }
 
         public async Task<Guid> Handle(SendFriendRequestCommand request, CancellationToken cancellationToken)
@@ -35,6 +39,7 @@ namespace TripDrop.Application.Friendships.Commands
             var friendship = new Friendship(request.RequesterId, request.AddresseeId);
             await _friendshipRepository.AddAsync(friendship, cancellationToken);
             await _friendshipRepository.SaveChangesAsync(cancellationToken);
+            await _realtimeNotifier.NotifyFriendRequestsChangedAsync(request.AddresseeId, cancellationToken);
 
             return friendship.Id;
         }

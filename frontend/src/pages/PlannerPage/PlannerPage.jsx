@@ -1,11 +1,13 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams } from 'react-router-dom';
 import { tripService } from '../../services/TripService';
 import { tripPointService } from '../../services/TripPointService';
 import { overpassService, POI_CATEGORIES, POI_MIN_ZOOM, matchPoiCategory } from '../../services/OverpassService';
-import { MapContainer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
+import { MapContainer, Marker, Marker as LeafletMarker, Popup, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+window.L = L;
 import 'leaflet-providers';
 import { LocateControl } from 'leaflet.locatecontrol';
 import 'leaflet.locatecontrol/dist/L.Control.Locate.min.css';
@@ -37,6 +39,10 @@ import styles from './PlannerPage.module.scss';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+import { useTripPointsRealtime } from '../../hooks/useTripPointsRealtime';
+import useAuth from '../../hooks/useAuth';
+import { useTripPresence } from '../../hooks/useTripPresence';
+import { colorForUser } from '../../utils/useColor';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -384,6 +390,95 @@ const FitToPinsButton = ({ pins }) => {
   return null;
 };
 
+const CursorTracker = ({ onMove, onLeave }) => {
+  useMapEvents({
+    mousemove(e) {
+      onMove(e.latlng.lat, e.latlng.lng);
+    },
+    mouseout() {
+      onLeave();
+    },
+  });
+  return null;
+};
+
+const RemoteCursor = ({ userId, username, lat, lng }) => {
+  const color = colorForUser(userId);
+  const initial = (username || '?')[0].toUpperCase();
+
+  const icon = useMemo(
+    () =>
+      L.divIcon({
+        className: styles.remoteCursorIcon,
+        html: `
+        <div class="${styles.cursorWrap}">
+          <svg width="32" height="32" viewBox="0 0 20 20">
+            <path d="M2 1 L17 9.5 L9.5 11 L7 18 Z" fill="${color}" stroke="white" stroke-width="1.3" stroke-linejoin="round"/>
+          </svg>
+          <span class="${styles.cursorLabel}" style="background:${color}">${initial}</span>
+        </div>`,
+        iconSize: [64, 40],
+        iconAnchor: [4, 3],
+      }),
+    [color, initial],
+  );
+
+  return <LeafletMarker position={[lat, lng]} icon={icon} interactive={false} zIndexOffset={1000} />;
+};
+
+const RemoteCursors = ({ others }) => (
+  <>
+    {others
+      .filter((o) => o.lat != null && o.lng != null)
+      .map((o) => (
+        <RemoteCursor key={o.userId} userId={o.userId} username={o.username} lat={o.lat} lng={o.lng} />
+      ))}
+  </>
+);
+
+const PresenceBar = ({ others }) => {
+  const map = useMap();
+  const [expanded, setExpanded] = useState(false);
+  const [container, setContainer] = useState(null);
+
+  useEffect(() => {
+    const control = L.control({ position: 'bottomleft' });
+    control.onAdd = () => {
+      const div = L.DomUtil.create('div');
+      L.DomEvent.disableClickPropagation(div);
+      setContainer(div);
+      return div;
+    };
+    control.addTo(map);
+    return () => {
+      map.removeControl(control);
+      setContainer(null);
+    };
+  }, [map]);
+
+  if (!container || others.length === 0) return null;
+
+  return createPortal(
+    <div className={styles.presenceBar} onMouseEnter={() => setExpanded(true)} onMouseLeave={() => setExpanded(false)}>
+      <span className={styles.presenceToggle}>{expanded ? '\u2039' : '\u203A'}</span>
+      <span className={styles.presenceCount}>{others.length}</span>
+      {expanded && (
+        <div className={styles.presenceList}>
+          {others.map((o) => (
+            <div key={o.userId} className={styles.presenceItem}>
+              <span className={styles.presenceAvatar} style={{ background: colorForUser(o.userId) }}>
+                {(o.username || '?')[0].toUpperCase()}
+              </span>
+              <span className={styles.presenceName}>{o.username}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>,
+    container,
+  );
+};
+
 const SearchAreaButton = ({ onSearch, onClear }) => {
   const map = useMap();
   const onSearchRef = useRef(onSearch);
@@ -633,8 +728,8 @@ const PinCard = ({ pin, onRename }) => {
       ) : (
         <span
           className={styles.pinName}
-          onClick={(e) => { e.stopPropagation(); setEditing(true); }}
-        >
+            onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+          >
           {pin.name?.trim() || <em className={styles.pinNamePlaceholder}>Bez nazwy</em>}
         </span>
       )}
@@ -716,6 +811,21 @@ const PlannerPage = () => {
     fetchAll();
     return () => { cancelled = true; };
   }, [tripId]);
+
+
+  const refetchPins = useCallback(async () => {
+    try {
+      const data = await tripPointService.getByTripId(tripId);
+      setPins(data);
+    } catch (err) {
+      setError(err.message);
+    }
+  }, [tripId]);
+
+  useTripPointsRealtime(tripId, refetchPins);
+
+  const { user } = useAuth();
+  const { present, others, updateCursor, clearCursor } = useTripPresence(tripId, user);
 
   const buckets = useMemo(
     () => buildBuckets(trip?.startDate, trip?.endDate),
@@ -802,7 +912,7 @@ const PlannerPage = () => {
         longitude: lng,
         dayIndex: null,
       });
-      setPins((prev) => [...prev, created]);
+      setPins((prev) => (prev.some((p) => p.id === created.id) ? prev : [...prev, created]));
     } catch (err) {
       setError(err.message);
     }
@@ -918,13 +1028,10 @@ const PlannerPage = () => {
   if (!trip) return <div className={styles.status}>Nie znaleziono wycieczki.</div>;
 
   return (
-      <PanelGroup
-        direction="horizontal"
-        autoSaveId="planner-layout"
-        className={styles.page}
-      >
+    <div className={styles.page}>
+      <PanelGroup direction="horizontal" autoSaveId="planner-layout" className={styles.panelGroup}>
         {/* Mapa */}
-        <Panel defaultSize={60} minSize={30}>
+        <Panel defaultSize={60} minSize={30} className={styles.mapPanel}>
           <MapContainer
             center={DEFAULT_CENTER}
             zoom={DEFAULT_ZOOM}
@@ -954,7 +1061,7 @@ const PlannerPage = () => {
                 </Popup>
               </Marker>
             ))}
-  
+
             {pins.map((pin) => (
               <Marker
                 key={pin.id}
@@ -971,7 +1078,7 @@ const PlannerPage = () => {
                 </Popup>
               </Marker>
             ))}
-  
+
             {contextMenuPos && (
               <EmptyContextMenu
                 position={contextMenuPos}
@@ -985,14 +1092,17 @@ const PlannerPage = () => {
               contextMenuOpen={contextMenuPos !== null}
             />
             <ResizeAware />
+            <CursorTracker onMove={updateCursor} onLeave={clearCursor} />
+            <RemoteCursors others={others} />
+            <PresenceBar others={present} />
           </MapContainer>
         </Panel>
-  
+
         {/* Bar */}
         <PanelResizeHandle className={styles.resizeHandle}>
           <div className={styles.resizeGrip} />
         </PanelResizeHandle>
-  
+
         {/* Boxy */}
         <Panel defaultSize={40} minSize={20} className={styles.daysPanel}>
           <DndContext
@@ -1013,7 +1123,8 @@ const PlannerPage = () => {
           </DndContext>
         </Panel>
       </PanelGroup>
-    );
+    </div>
+  );
 };
 
 export default PlannerPage;

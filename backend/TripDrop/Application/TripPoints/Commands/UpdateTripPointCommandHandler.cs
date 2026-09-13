@@ -1,5 +1,6 @@
 using MediatR;
 using TripDrop.Domain.Repositories;
+using TripDrop.Application.Common;
 
 namespace TripDrop.Application.TripPoints.Commands
 {
@@ -7,13 +8,16 @@ namespace TripDrop.Application.TripPoints.Commands
     {
         private readonly ITripPointRepository _tripPointRepository;
         private readonly ITripRepository _tripRepository;
+        private readonly IRealtimeNotifier _realtimeNotifier;
 
         public UpdateTripPointCommandHandler(
             ITripPointRepository tripPointRepository,
-            ITripRepository tripRepository)
+            ITripRepository tripRepository,
+            IRealtimeNotifier realtimeNotifier)
         {
             _tripPointRepository = tripPointRepository;
             _tripRepository = tripRepository;
+            _realtimeNotifier = realtimeNotifier;
         }
 
         public async Task<Unit> Handle(UpdateTripPointCommand request, CancellationToken cancellationToken)
@@ -36,6 +40,7 @@ namespace TripDrop.Application.TripPoints.Commands
 
             point.Update(request.Name, request.DayIndex, request.Position);
             await _tripPointRepository.SaveChangesAsync(cancellationToken);
+            await _realtimeNotifier.NotifyTripPointsChangedAsync(point.TripId, cancellationToken);
 
             return Unit.Value;
         }
