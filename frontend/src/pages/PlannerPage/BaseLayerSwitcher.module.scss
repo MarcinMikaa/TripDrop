@@ -1,0 +1,72 @@
+:global(.leaflet-control-geosearch.bar) {
+  max-width: calc(100% - 260px);
+}
+
+.switcher {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, 96px);
+  justify-items: center;
+  gap: 8px;
+  padding: 8px;
+  max-width: calc(var(--map-width, 100vw) - 280px);
+  background: var(--stone-light);
+  border-radius: var(--radius);
+  border: 2px solid var(--stone);
+}
+
+.tile,
+.trigger {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.thumb {
+  display: block;
+  box-sizing: border-box;
+  width: 96px;
+  height: 96px;
+  border-width: 3px;
+  border-bottom-width: 20px;
+  border-radius: var(--radius);
+  border-style: solid;
+  border-color: var(--steel-light, currentColor);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  flex-shrink: 0;
+}
+
+.tileLabel,
+.triggerLabel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 4px;
+  display: block;
+  white-space: nowrap;
+  line-height: 1;
+  text-align: center;
+  pointer-events: none;
+}
+
+.tileActive {
+  outline-style: solid;
+  outline-width: 2px;
+  outline-offset: 2px;
+}
+
+.hidden {
+  display: none;
+}

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { tripService } from '../../services/TripService';
 import { tripPointService } from '../../services/TripPointService';
+import { overpassService, POI_CATEGORIES, POI_MIN_ZOOM, matchPoiCategory } from '../../services/OverpassService';
 import { MapContainer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -31,6 +32,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import BaseLayerSwitcher from './BaseLayerSwitcher';
 import styles from './PlannerPage.module.scss';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -64,6 +66,8 @@ const UNASSIGNED_MARKER_COLOR = 'gray';
 const ENDPOINT_MARKER_ICON = 'flag';
 const MIDPOINT_MARKER_ICON = 'circle';
 const POPUP_CLOSE_CLICK_GRACE_MS = 150;
+const GEOSEARCH_RESULT_LIMIT = 10;
+const SEARCH_BAR_RIGHT_GUTTER = 260;
 
 const markerIconCache = new Map();
 
@@ -84,6 +88,33 @@ const getPinIcon = (dayIndex, isEndpoint) => {
         prefix: 'fa',
         markerColor,
         iconColor: 'white',
+      })
+    );
+  }
+  return markerIconCache.get(cacheKey);
+};
+
+const POI_MARKER_SIZE = 24;
+
+const getPoiIcon = (category) => {
+  const config = POI_CATEGORIES[category];
+  if (!config) return null;
+  const cacheKey = `poi:${category}`;
+  if (!markerIconCache.has(cacheKey)) {
+    const half = POI_MARKER_SIZE / 2;
+    markerIconCache.set(
+      cacheKey,
+      L.divIcon({
+        className: '',
+        html:
+          `<span style="display:flex;align-items:center;justify-content:center;` +
+          `width:${POI_MARKER_SIZE}px;height:${POI_MARKER_SIZE}px;border-radius:50%;` +
+          `background:${config.color};color:#fff;font-size:12px;` +
+          `box-shadow:0 0 0 2px var(--stone), 0 1px 3px rgba(0,0,0,0.4);">` +
+          `<i class="fa fa-${config.icon}"></i></span>`,
+        iconSize: [POI_MARKER_SIZE, POI_MARKER_SIZE],
+        iconAnchor: [half, half],
+        popupAnchor: [0, -half],
       })
     );
   }
@@ -167,29 +198,6 @@ const MapClickHandler = ({ onEmptyClick, contextMenuOpen }) => {
   return null;
 };
 
-//Warstwy map
-const BaseLayersControl = () => {
-  const map = useMap();
-  useEffect(() => {
-    const baseLayers = {
-      'Domyślna': L.tileLayer.provider('OpenStreetMap.Mapnik'),
-      'Satelita': L.tileLayer.provider('Esri.WorldImagery'),
-      'Topograficzna': L.tileLayer.provider('OpenTopoMap'),
-      'Ciemna': L.tileLayer.provider('CartoDB.DarkMatter'),
-    };
-    baseLayers['Domyślna'].addTo(map);
-    const control = L.control.layers(baseLayers, null, { position: 'topright' }).addTo(map);
-
-    return () => {
-      map.removeControl(control);
-      Object.values(baseLayers).forEach((layer) => {
-        if (map.hasLayer(layer)) map.removeLayer(layer);
-      });
-    };
-  }, [map]);
-  return null;
-};
-
 //Znajdz mnie
 const LocateButton = () => {
   const map = useMap();
@@ -252,18 +260,62 @@ const pickPlaceName = (label) => {
   return name.slice(0, MAX_PIN_NAME_LENGTH);
 };
 
-const GeoSearchField = ({ onResult }) => {
+const GeoSearchField = ({ onResult, onPoiResults, onPoiMessage }) => {
   const map = useMap();
   const onResultRef = useRef(onResult);
+  const onPoiResultsRef = useRef(onPoiResults);
+  const onPoiMessageRef = useRef(onPoiMessage);
+
   useEffect(() => { onResultRef.current = onResult; }, [onResult]);
+  useEffect(() => { onPoiResultsRef.current = onPoiResults; }, [onPoiResults]);
+  useEffect(() => { onPoiMessageRef.current = onPoiMessage; }, [onPoiMessage]);
 
   useEffect(() => {
     let control;
+
+    const nominatim = new OpenStreetMapProvider({
+      params: { 'accept-language': 'pl' },
+    });
+
+    const provider = {
+      async search({ query }) {
+        const category = matchPoiCategory(query);
+        if (!category) return nominatim.search({ query });
+
+        if (map.getZoom() < POI_MIN_ZOOM) {
+          onPoiMessageRef.current?.('Przybliż mapę, żeby wyszukać miejsca w okolicy.');
+          return [];
+        }
+
+        onPoiMessageRef.current?.('Szukam miejsc...');
+        try {
+          const found = await overpassService.searchPois(map.getBounds(), {
+            categories: [category],
+          });
+          onPoiResultsRef.current?.(found);
+          onPoiMessageRef.current?.(
+            found.length === 0
+              ? 'Nie znaleziono miejsc w tym obszarze.'
+              : `Znaleziono ${found.length} miejsc.`
+          );
+          return found.slice(0, GEOSEARCH_RESULT_LIMIT).map((poi) => ({
+            x: poi.lng,
+            y: poi.lat,
+            label: poi.name,
+            bounds: null,
+            raw: poi,
+          }));
+        } catch (err) {
+          if (err.name === 'AbortError') return [];
+          onPoiMessageRef.current?.(err.message);
+          return [];
+        }
+      },
+    };
+
     try {
       control = new GeoSearchControl({
-        provider: new OpenStreetMapProvider({
-          params: { 'accept-language': 'pl' },
-        }),
+        provider,
         style: 'bar',
         position: 'topleft',
         showMarker: false,
@@ -274,11 +326,16 @@ const GeoSearchField = ({ onResult }) => {
         animateZoom: true,
         autoComplete: true,
         autoCompleteDelay: 400,
-        searchLabel: 'Szukaj miejsca...',
+        searchLabel: 'Szukaj miejsca lub kategorii...',
         notFoundMessage: 'Nie znaleziono takiego miejsca.',
       });
 
       map.addControl(control);
+
+      const searchBar = control.getContainer?.();
+      if (searchBar) {
+        searchBar.style.maxWidth = `calc(100% - ${SEARCH_BAR_RIGHT_GUTTER}px)`;
+      }
     } catch (err) {
       console.error('[geosearch] Wyszukiwarka niedostępna:', err);
       return undefined;
@@ -325,6 +382,116 @@ const FitToPinsButton = ({ pins }) => {
   }, [map]);
 
   return null;
+};
+
+const SearchAreaButton = ({ onSearch, onClear }) => {
+  const map = useMap();
+  const onSearchRef = useRef(onSearch);
+  const onClearRef = useRef(onClear);
+
+  useEffect(() => { onSearchRef.current = onSearch; }, [onSearch]);
+  useEffect(() => { onClearRef.current = onClear; }, [onClear]);
+
+  useEffect(() => {
+    const searchBtn = L.easyButton(
+      '<i class="fas fa-magnifying-glass-location" style="line-height:30px;font-size:14px;"></i>',
+      () => onSearchRef.current?.(map.getBounds(), map.getZoom()),
+      'Szukaj miejsc na tym obszarze'
+    ).addTo(map);
+
+    const clearBtn = L.easyButton(
+      '<i class="fas fa-eraser" style="line-height:30px;font-size:14px;"></i>',
+      () => onClearRef.current?.(),
+      'Wyczyść znalezione miejsca'
+    ).addTo(map);
+
+    return () => {
+      map.removeControl(searchBtn);
+      map.removeControl(clearBtn);
+    };
+  }, [map]);
+
+  return null;
+};
+
+const PoiStatusControl = ({ message }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!message) return undefined;
+
+    const control = L.control({ position: 'bottomleft' });
+    control.onAdd = () => {
+      const div = L.DomUtil.create('div', 'leaflet-bar');
+      div.textContent = message;
+      L.DomEvent.disableClickPropagation(div);
+      return div;
+    };
+    control.addTo(map);
+
+    return () => {
+      map.removeControl(control);
+    };
+  }, [map, message]);
+
+  return null;
+};
+
+const PoiPopupContent = ({ poi }) => {
+  const category = POI_CATEGORIES[poi.category];
+  const location = [poi.address, poi.city].filter(Boolean).join(', ');
+
+  return (
+    <div className={styles.popup}>
+      <div className={styles.popupName}>{poi.name || category?.label || 'Miejsce'}</div>
+      <dl className={styles.popupMeta}>
+        <dt>Rodzaj:</dt>
+        <dd>{category?.label || 'Miejsce'}</dd>
+        {location ? (
+          <>
+            <dt>Adres:</dt>
+            <dd>{location}</dd>
+          </>
+        ) : null}
+        {poi.cuisine ? (
+          <>
+            <dt>Kuchnia:</dt>
+            <dd>{poi.cuisine}</dd>
+          </>
+        ) : null}
+        {poi.stars ? (
+          <>
+            <dt>Standard:</dt>
+            <dd>{poi.stars}</dd>
+          </>
+        ) : null}
+        {poi.openingHours ? (
+          <>
+            <dt>Godziny:</dt>
+            <dd>{poi.openingHours}</dd>
+          </>
+        ) : null}
+        {poi.phone ? (
+          <>
+            <dt>Telefon:</dt>
+            <dd>
+              <a href={`tel:${poi.phone}`}>{poi.phone}</a>
+            </dd>
+          </>
+        ) : null}
+        {poi.website ? (
+          <>
+            <dt>Strona:</dt>
+            <dd>
+              <a href={poi.website} target="_blank" rel="noreferrer">
+                Otwórz
+              </a>
+            </dd>
+          </>
+        ) : null}
+      </dl>
+    </div>
+  );
 };
 
 const MarkerPopupContent = ({ pin, onAddPin, onEdit, onDelete }) => {
@@ -513,6 +680,14 @@ const PlannerPage = () => {
   // Popup context menu (klik w puste miejsce na mapie)
   const [contextMenuPos, setContextMenuPos] = useState(null);
 
+  const [pois, setPois] = useState([]);
+  const [poiMessage, setPoiMessage] = useState('');
+  const poiRequestRef = useRef(null);
+
+  useEffect(() => () => {
+    poiRequestRef.current?.abort();
+  }, []);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
@@ -576,6 +751,42 @@ const PlannerPage = () => {
   //Pusty klik
   const handleEmptyMapClick = ({ lat, lng }) => {
     setContextMenuPos({ lat, lng });
+  };
+
+  const handleSearchArea = async (bounds, zoom) => {
+    if (zoom < POI_MIN_ZOOM) {
+      setPoiMessage('Przybliż mapę, żeby wyszukać miejsca w okolicy.');
+      return;
+    }
+
+    poiRequestRef.current?.abort();
+    const controller = new AbortController();
+    poiRequestRef.current = controller;
+
+    setPoiMessage('Szukam miejsc...');
+    try {
+      const found = await overpassService.searchPois(bounds, {
+        signal: controller.signal,
+      });
+      setPois(found);
+      setPoiMessage(
+        found.length === 0
+          ? 'Nie znaleziono miejsc w tym obszarze.'
+          : `Znaleziono ${found.length} miejsc.`
+      );
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      setPoiMessage(err.message);
+    } finally {
+      if (poiRequestRef.current === controller) poiRequestRef.current = null;
+    }
+  };
+
+  const handleClearPois = () => {
+    poiRequestRef.current?.abort();
+    poiRequestRef.current = null;
+    setPois([]);
+    setPoiMessage('');
   };
 
   const handleSearchResult = (lat, lng, name) => {
@@ -719,10 +930,30 @@ const PlannerPage = () => {
             zoom={DEFAULT_ZOOM}
             className={styles.map}
           >
-            <BaseLayersControl />
+            <BaseLayerSwitcher />
             <LocateButton />
-            <GeoSearchField onResult={handleSearchResult} />
+            <GeoSearchField
+              onResult={handleSearchResult}
+              onPoiResults={setPois}
+              onPoiMessage={setPoiMessage}
+            />
             <FitToPinsButton pins={pins} />
+            {/*
+            <SearchAreaButton onSearch={handleSearchArea} onClear={handleClearPois} />
+            */}
+            <PoiStatusControl message={poiMessage} />
+  
+            {pois.map((poi) => (
+              <Marker
+                key={poi.id}
+                position={[poi.lat, poi.lng]}
+                icon={getPoiIcon(poi.category)}
+              >
+                <Popup>
+                  <PoiPopupContent poi={poi} />
+                </Popup>
+              </Marker>
+            ))}
   
             {pins.map((pin) => (
               <Marker
