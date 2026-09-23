@@ -15,8 +15,6 @@ import { GeoSearchControl, OpenStreetMapProvider } from 'leaflet-geosearch';
 import 'leaflet-geosearch/dist/geosearch.css';
 import 'leaflet-easybutton';
 import 'leaflet-easybutton/src/easy-button.css';
-import 'leaflet.awesome-markers';
-import 'leaflet.awesome-markers/dist/leaflet.awesome-markers.css';
 import '@fortawesome/fontawesome-free/css/v4-shims.min.css';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
 import {
@@ -36,6 +34,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import BaseLayerSwitcher from './BaseLayerSwitcher';
+import DayRoutes from './DayRoutes';
 import styles from './PlannerPage.module.scss';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -60,16 +59,16 @@ const MAX_PIN_NAME_LENGTH = 200;
 const FOCUS_ZOOM = 15;
 
 const DAY_MARKER_COLORS = [
-  'blue',
-  'green',
-  'orange',
-  'purple',
-  'red',
-  'cadetblue',
-  'darkgreen',
-  'darkblue',
-  'darkpurple',
-  'darkred',
+  '#2f6f9f',
+  '#3f8f5f',
+  '#c97b1f',
+  '#7a4f9c',
+  '#b4443c',
+  '#2f8f8f',
+  '#6f7f2f',
+  '#1f5f7f',
+  '#8f3f6f',
+  '#7f4a2f',
 ];
 
 const DAY_HEX_COLORS = {
@@ -88,9 +87,13 @@ const DAY_HEX_COLORS = {
 
 const dayColorHex = (dayIndex) => DAY_HEX_COLORS[markerColorForDay(dayIndex)];
 
-const UNASSIGNED_MARKER_COLOR = 'gray';
-const ENDPOINT_MARKER_ICON = 'flag';
-const MIDPOINT_MARKER_ICON = 'circle';
+const UNASSIGNED_MARKER_COLOR = '#6f6f6f';
+const PIN_MARKER_WIDTH = 32;
+const PIN_MARKER_HEIGHT = 44;
+const PIN_HEAD_CENTER_Y = 15;
+const PIN_RING_RADIUS = 10;
+const PIN_DISC_RADIUS = 8;
+const PIN_LETTER_OFFSET_X = -0.6;
 const POPUP_CLOSE_CLICK_GRACE_MS = 150;
 const GEOSEARCH_RESULT_LIMIT = 10;
 const SEARCH_BAR_RIGHT_GUTTER = 260;
@@ -102,18 +105,30 @@ const markerColorForDay = (dayIndex) =>
     ? UNASSIGNED_MARKER_COLOR
     : DAY_MARKER_COLORS[dayIndex % DAY_MARKER_COLORS.length];
 
-const getPinIcon = (dayIndex, isEndpoint) => {
-  const markerColor = markerColorForDay(dayIndex);
-  const icon = isEndpoint ? ENDPOINT_MARKER_ICON : MIDPOINT_MARKER_ICON;
-  const cacheKey = `${markerColor}:${icon}`;
+const pinLetter = (userName) => (userName || '?').trim().charAt(0).toUpperCase() || '?';
+
+const getPinIcon = (dayIndex, userId, userName) => {
+  const dayColor = markerColorForDay(dayIndex);
+  const userColor = colorForUser(userId);
+  const letter = pinLetter(userName);
+  const cacheKey = `pin:${dayColor}:${userColor}:${letter}:${PIN_LETTER_OFFSET_X}`;
+
   if (!markerIconCache.has(cacheKey)) {
     markerIconCache.set(
       cacheKey,
-      L.AwesomeMarkers.icon({
-        icon,
-        prefix: 'fa',
-        markerColor,
-        iconColor: 'white',
+      L.divIcon({
+        className: '',
+        html:
+          `<svg width="${PIN_MARKER_WIDTH}" height="${PIN_MARKER_HEIGHT}" viewBox="0 0 32 44" xmlns="http://www.w3.org/2000/svg">` +
+          `<path d="M16 2 C8.8 2 3 7.8 3 15 C3 25.5 16 42 16 42 C16 42 29 25.5 29 15 C29 7.8 23.2 2 16 2 Z" fill="${dayColor}"/>` +
+          `<circle cx="16" cy="${PIN_HEAD_CENTER_Y}" r="${PIN_RING_RADIUS}" fill="#ffffff"/>` +
+          `<circle cx="16" cy="${PIN_HEAD_CENTER_Y}" r="${PIN_DISC_RADIUS}" fill="${userColor}"/>` +
+          `<text x="${16 + PIN_LETTER_OFFSET_X}" y="${PIN_HEAD_CENTER_Y}" text-anchor="middle" dominant-baseline="central" ` +
+          `font-family="inherit" font-size="11" font-weight="700" letter-spacing="0" fill="#ffffff">${letter}</text>` +
+          `</svg>`,
+        iconSize: [PIN_MARKER_WIDTH, PIN_MARKER_HEIGHT],
+        iconAnchor: [PIN_MARKER_WIDTH / 2, PIN_MARKER_HEIGHT],
+        popupAnchor: [0, -PIN_MARKER_HEIGHT + 6],
       })
     );
   }
@@ -1148,17 +1163,22 @@ const PlannerPage = () => {
     return groups;
   }, [pins, buckets]);
 
-  const endpointPinIds = useMemo(() => {
-    const ids = new Set();
-    buckets.forEach((bucket) => {
-      if (bucket.dayIndex === null) return;
-      const group = pinsByBucket[bucket.key] || [];
-      if (group.length === 0) return;
-      ids.add(group[0].id);
-      ids.add(group[group.length - 1].id);
-    });
-    return ids;
-  }, [buckets, pinsByBucket]);
+  const routeDays = useMemo(
+    () =>
+      buckets
+        .filter((bucket) => bucket.dayIndex !== null)
+        .map((bucket) => ({
+          key: bucket.key,
+          label: bucket.label,
+          color: markerColorForDay(bucket.dayIndex),
+          points: (pinsByBucket[bucket.key] || []).map((pin) => ({
+            lat: pin.latitude,
+            lng: pin.longitude,
+          })),
+        }))
+        .filter((day) => day.points.length >= 2),
+    [buckets, pinsByBucket]
+  );
 
   const hoveredPin = useMemo(
     () => (hoveredPinId ? pins.find((p) => p.id === hoveredPinId) ?? null : null),
@@ -1452,6 +1472,7 @@ const PlannerPage = () => {
               onPoiMessage={setPoiMessage}
             />
             <FitToPinsButton pins={pins} />
+            <DayRoutes days={routeDays} />
             {/*
             <SearchAreaButton onSearch={handleSearchArea} onClear={handleClearPois} />
             */}
@@ -1488,7 +1509,7 @@ const PlannerPage = () => {
                 key={pin.id}
                 ref={setMarkerRef(pin.id)}
                 position={[pin.latitude, pin.longitude]}
-                icon={getPinIcon(pin.dayIndex, endpointPinIds.has(pin.id))}
+                icon={getPinIcon(pin.dayIndex, pin.userId, pin.userName, endpointPinIds.has(pin.id))}
                 eventHandlers={{
                   mouseover: () => setHoveredPinId(pin.id),
                   mouseout: () => setHoveredPinId((c) => (c === pin.id ? null : c)),
