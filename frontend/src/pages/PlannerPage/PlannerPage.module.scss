@@ -12,10 +12,6 @@
   overflow: hidden;
 }
 
-.mapContainer {
-  border: 1px solid var(--stone);
-}
-
 .map {
   width: 100%;
   height: 100%;
@@ -43,8 +39,53 @@
   }
 }
 
+.daysPanel {
+  display: flex;
+  flex-direction: column;
+}
+
+.daysToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+  padding: 10px 16px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.daysSummary {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.daysToolbarBtn {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: var(--stone);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--steel);
+    outline-offset: 2px;
+  }
+}
+
 .daysList {
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -57,23 +98,66 @@
 .dayColumn {
   display: flex;
   flex-direction: column;
-  background: var(--steel-light);
-  border: 1px solid var(--stone);
+  background: var(--bg);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 12px;
   gap: 12px;
 }
 
+.dayColumnCollapsed {
+  .dayHeader {
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+}
+
+.dayColumnOver {
+  outline: 2px solid var(--steel);
+  outline-offset: -2px;
+}
+
 .dayHeader {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--stone);
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.dayBadge {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.dayBadgeMuted {
+  opacity: 0.55;
+}
+
+.dayTitle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .dayName {
   font-weight: 600;
+  color: var(--text);
+}
+
+.dayRouteSummary {
+  font-size: 0.75rem;
+  color: var(--text-muted);
 }
 
 .dayCount {
@@ -81,43 +165,266 @@
   padding: 2px 8px;
   text-align: center;
   background: var(--stone);
+  color: var(--text-muted);
   border-radius: 999px;
   font-size: 0.8rem;
+}
+
+.dayToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+
+  i {
+    transition: transform 0.2s;
+  }
+
+  &:hover {
+    background: var(--stone);
+    color: var(--text);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--steel);
+    outline-offset: 2px;
+  }
+}
+
+.dayToggleCollapsed i {
+  transform: rotate(-90deg);
 }
 
 .pinList {
   display: flex;
   flex-direction: column;
-  min-height: 60px;
   gap: 8px;
   background: var(--stone-light);
 }
 
 .pinCard {
-  padding: 10px 12px;
-  background: var(--stone-light);
-  border: 1px solid var(--stone);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 8px 10px 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+
+  &:hover {
+    border-color: var(--steel-light);
+  }
+
+  &:hover .pinDragHandle,
+  &:hover .pinMenuBtn,
+  &:focus-within .pinDragHandle,
+  &:focus-within .pinMenuBtn {
+    opacity: 1;
+  }
+}
+
+.routeLink {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 20px;
+  margin: -2px 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  transition: opacity 0.15s;
+
+  i {
+    font-size: 0.7rem;
+  }
+}
+
+.routeLinkTrack {
+  width: 46px;
+  align-self: stretch;
+  flex-shrink: 0;
+  border-right: 1px dashed var(--stone);
+}
+
+.routeLinkDimmed {
+  opacity: 0;
+}
+
+.pinCardHighlighted {
+  border-color: var(--steel);
+  box-shadow: 0 0 0 2px rgba(91, 143, 168, 0.25);
+}
+
+.pinCardOverlay {
+  cursor: grabbing;
+  border-color: var(--steel);
+  box-shadow: 0 8px 24px rgba(10, 10, 10, 0.22);
+  transform: rotate(1.5deg);
+
+  .pinDragHandle {
+    opacity: 1;
+  }
+}
+
+.pinDragHandle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 28px;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.8rem;
   cursor: grab;
+  opacity: 0;
+  touch-action: none;
+  transition:
+    opacity 0.15s,
+    color 0.15s;
+
+  &:hover {
+    color: var(--text);
+  }
+
+  &:focus-visible {
+    opacity: 1;
+    outline: 2px solid var(--steel);
+    outline-offset: -2px;
+    border-radius: 4px;
+  }
+}
+
+.pinMenuBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity 0.15s,
+    background 0.15s,
+    color 0.15s;
+
+  &:hover {
+    background: var(--stone);
+    color: var(--text);
+  }
+
+  &:focus-visible {
+    opacity: 1;
+    outline: 2px solid var(--steel);
+    outline-offset: -2px;
+  }
+}
+
+@media (hover: none) {
+  .pinDragHandle,
+  .pinMenuBtn {
+    opacity: 1;
+  }
+}
+
+.pinMenu {
+  position: fixed;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 20px rgba(10, 10, 10, 0.18);
+}
+
+.pinMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+
+  i {
+    width: 14px;
+    text-align: center;
+    color: var(--text-muted);
+  }
+
+  &:hover,
+  &:focus-visible {
+    background: var(--stone);
+    outline: none;
+  }
+}
+
+.pinMenuItemDanger {
+  color: #a23336;
+
+  i {
+    color: #a23336;
+  }
+
+  &:hover,
+  &:focus-visible {
+    background: rgba(162, 51, 54, 0.08);
+  }
+}
+
+.pinOrder {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  background: var(--bg);
 }
 
 .emptyState {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 12px;
-  font-size: 0.85rem;
+  padding: 4px;
+  font-size: 0.8rem;
   color: var(--text-muted);
-}
-
-.addPinBtn {
-  width: 100%;
-  padding: 8px;
-  background: var(--linen);
-  border: 1px dashed var(--stone);
-  border-radius: var(--radius-sm);
-  color: var(--text-muted);
-  cursor: pointer;
 }
 
 .pinCardDragging {
@@ -125,9 +432,7 @@
 }
 
 .pinName {
-  cursor: text;
-  display: inline-block;
-  width: 100%;
+  flex: 1;
   min-height: 1.2em;
 }
 
@@ -146,11 +451,6 @@
   font: inherit;
   color: inherit;
   outline: none;
-}
-
-.pinListOver {
-  outline: 2px solid var(--steel);
-  outline-offset: -2px;
 }
 
 .popup {

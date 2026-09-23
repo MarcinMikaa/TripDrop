@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect, Fragment } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams } from 'react-router-dom';
 import { tripService } from '../../services/TripService';
 import { tripPointService } from '../../services/TripPointService';
 import { overpassService, POI_CATEGORIES, POI_MIN_ZOOM, matchPoiCategory } from '../../services/OverpassService';
-import { MapContainer, Marker, Marker as LeafletMarker, Popup, useMapEvents, useMap } from 'react-leaflet';
+import { MapContainer, Marker, Marker as LeafletMarker, Popup, CircleMarker, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 window.L = L;
@@ -21,6 +21,7 @@ import '@fortawesome/fontawesome-free/css/v4-shims.min.css';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
 import {
   DndContext,
+  DragOverlay,
   PointerSensor,
   useSensor,
   useSensors,
@@ -43,6 +44,7 @@ import { useTripPointsRealtime } from '../../hooks/useTripPointsRealtime';
 import useAuth from '../../hooks/useAuth';
 import { useTripPresence } from '../../hooks/useTripPresence';
 import { colorForUser } from '../../utils/useColor';
+import { swalConfirmDelete } from '../../utils/swal';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -55,6 +57,7 @@ const DEFAULT_CENTER = [51.4297, 20.1122];
 const DEFAULT_ZOOM = 13;
 const UNASSIGNED_KEY = 'unassigned';
 const MAX_PIN_NAME_LENGTH = 200;
+const FOCUS_ZOOM = 15;
 
 const DAY_MARKER_COLORS = [
   'blue',
@@ -68,6 +71,23 @@ const DAY_MARKER_COLORS = [
   'darkpurple',
   'darkred',
 ];
+
+const DAY_HEX_COLORS = {
+  blue: '#38aadd',
+  green: '#70ab25',
+  orange: '#f69730',
+  purple: '#d252b9',
+  red: '#d63e2a',
+  cadetblue: '#436978',
+  darkgreen: '#728224',
+  darkblue: '#0067a3',
+  darkpurple: '#5b396b',
+  darkred: '#a23336',
+  gray: '#575757',
+};
+
+const dayColorHex = (dayIndex) => DAY_HEX_COLORS[markerColorForDay(dayIndex)];
+
 const UNASSIGNED_MARKER_COLOR = 'gray';
 const ENDPOINT_MARKER_ICON = 'flag';
 const MIDPOINT_MARKER_ICON = 'circle';
@@ -135,6 +155,13 @@ const dateFormatter = new Intl.DateTimeFormat('pl-PL', {
   hour: '2-digit',
   minute: '2-digit',
 });
+
+//odmiana liczebników w pasku panelu dni (1 miejsce / 2 miejsca / 5 miejsc)
+const pluralRules = new Intl.PluralRules('pl-PL');
+const PLACE_FORMS = { one: 'miejsce', few: 'miejsca', many: 'miejsc', other: 'miejsca' };
+const DAY_FORMS = { one: 'dzień', few: 'dni', many: 'dni', other: 'dnia' };
+const UNASSIGNED_FORMS = { one: 'nieprzypisane', few: 'nieprzypisane', many: 'nieprzypisanych', other: 'nieprzypisanego' };
+const pluralize = (count, forms) => `${count} ${forms[pluralRules.select(count)] ?? forms.many}`;
 
 //build Koszykow
 const buildBuckets = (startDate, endDate) => {
@@ -675,14 +702,163 @@ const EmptyContextMenu = ({ position, onAddPin, onClose }) => (
   </Popup>
 );
 
+const MENU_WIDTH = 200;
+const MENU_GAP = 4;
+const VIEWPORT_MARGIN = 8;
+
+const PinCardMenu = ({ items }) => {
+  const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState(null);
+  const triggerRef = useRef(null);
+  const menuRef = useRef(null);
+
+  const close = useCallback((restoreFocus = false) => {
+    setOpen(false);
+    setPosition(null);
+    if (restoreFocus) triggerRef.current?.focus();
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    const rect = triggerRef.current?.getBoundingClientRect();
+    if (!rect) {
+      setOpen(false);
+      return;
+    }
+    const height = menuRef.current?.offsetHeight ?? 0;
+    const opensUp = rect.bottom + MENU_GAP + height > window.innerHeight - VIEWPORT_MARGIN;
+    const left = Math.min(
+      Math.max(VIEWPORT_MARGIN, rect.right - MENU_WIDTH),
+      Math.max(VIEWPORT_MARGIN, window.innerWidth - MENU_WIDTH - VIEWPORT_MARGIN)
+    );
+    const top = opensUp
+      ? Math.max(VIEWPORT_MARGIN, rect.top - MENU_GAP - height)
+      : rect.bottom + MENU_GAP;
+    setPosition({ top, left });
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || !position) return;
+    menuRef.current?.querySelector('button')?.focus();
+  }, [open, position]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const handlePointerDown = (e) => {
+      if (menuRef.current?.contains(e.target)) return;
+      if (triggerRef.current?.contains(e.target)) return;
+      close();
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        close(true);
+      }
+    };
+
+    const handleScroll = (e) => {
+      if (menuRef.current?.contains(e.target)) return;
+      close();
+    };
+    const handleResize = () => close();
+
+    document.addEventListener('pointerdown', handlePointerDown, true);
+    document.addEventListener('keydown', handleKeyDown, true);
+    window.addEventListener('scroll', handleScroll, true);
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown, true);
+      document.removeEventListener('keydown', handleKeyDown, true);
+      window.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [open, close]);
+
+  const handleSelect = (item) => {
+    close();
+    try {
+      item.onSelect?.();
+    } catch (err) {}
+  };
+
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        data-stop-card-click
+        className={styles.pinMenuBtn}
+        aria-label="Opcje punktu"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
+      >
+        <i className="fas fa-ellipsis-vertical" aria-hidden="true" />
+      </button>
+
+      {open &&
+        createPortal(
+          <div
+            ref={menuRef}
+            role="menu"
+            className={styles.pinMenu}
+            style={{
+              top: position?.top ?? 0,
+              left: position?.left ?? 0,
+              width: MENU_WIDTH,
+              visibility: position ? 'visible' : 'hidden',
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {items.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                role="menuitem"
+                className={`${styles.pinMenuItem} ${item.danger ? styles.pinMenuItemDanger : ''}`}
+                onClick={() => handleSelect(item)}
+              >
+                <i className={`fas ${item.icon}`} aria-hidden="true" />
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </div>,
+          document.body
+        )}
+    </>
+  );
+};
+
+const PinCardPreview = ({ pin, order, color }) => (
+  <div className={`${styles.pinCard} ${styles.pinCardOverlay}`}>
+    <span className={styles.pinDragHandle} aria-hidden="true">
+      <i className="fas fa-grip-vertical" />
+    </span>
+    <span className={styles.pinOrder} style={{ color, borderColor: color }}>
+      {order}
+    </span>
+    <span className={styles.pinName}>
+      {pin.name?.trim() || <em className={styles.pinNamePlaceholder}>Bez nazwy</em>}
+    </span>
+  </div>
+);
+
 //Pojedyncza pinezka w koszyku
-const PinCard = ({ pin, onRename }) => {
+const PinCard = ({ pin, onRename, onDelete, onLocate, onHoverChange, order, color, highlighted }) => {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(pin.name || '');
 
-  const {
-    attributes, listeners, setNodeRef, transform, transition, isDragging,
-  } = useSortable({ id: pin.id, disabled: editing });
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
+    id: pin.id,
+    disabled: editing,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -704,14 +880,43 @@ const PinCard = ({ pin, onRename }) => {
     if (!editing) setValue(pin.name || '');
   }, [pin.name, editing]);
 
+  const handleCardClick = (e) => {
+    if (editing) return;
+    if (e.target.closest?.('[data-stop-card-click]')) return;
+    onLocate(pin);
+  };
+
+  const menuItems = [
+    { key: 'locate', label: 'Pokaż na mapie', icon: 'fa-location-crosshairs', onSelect: () => onLocate(pin) },
+    { key: 'rename', label: 'Zmień nazwę', icon: 'fa-pen', onSelect: () => setEditing(true) },
+    { key: 'delete', label: 'Usuń punkt', icon: 'fa-trash', danger: true, onSelect: () => onDelete(pin) },
+  ];
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`${styles.pinCard} ${isDragging ? styles.pinCardDragging : ''}`}
-      {...attributes}
-      {...listeners}
+      className={`${styles.pinCard} ${isDragging ? styles.pinCardDragging : ''} ${highlighted ? styles.pinCardHighlighted : ''}`}
+      onClick={handleCardClick}
+      onMouseEnter={() => onHoverChange(pin.id)}
+      onMouseLeave={() => onHoverChange(null)}
     >
+      <button
+        ref={setActivatorNodeRef}
+        type="button"
+        data-stop-card-click
+        className={styles.pinDragHandle}
+        aria-label="Przeciągnij punkt"
+        {...attributes}
+        {...listeners}
+      >
+        <i className="fas fa-grip-vertical" aria-hidden="true" />
+      </button>
+
+      <span className={styles.pinOrder} style={{ color, borderColor: color }}>
+        {order}
+      </span>
+
       {editing ? (
         <input
           autoFocus
@@ -728,37 +933,127 @@ const PinCard = ({ pin, onRename }) => {
       ) : (
         <span
           className={styles.pinName}
-            onClick={(e) => { e.stopPropagation(); setEditing(true); }}
-          >
+          onDoubleClick={(e) => { e.stopPropagation(); setEditing(true); }}
+        >
           {pin.name?.trim() || <em className={styles.pinNamePlaceholder}>Bez nazwy</em>}
         </span>
       )}
+
+      <PinCardMenu items={menuItems} />
     </div>
   );
 };
 
+// todo zmiana na prawdziwe dane trasy, na dole tylko atrapa
+const MOCK_ROUTE_DAY_INDEX = 0;
+const MOCK_ROUTE_ICON = 'fa-car';
+const MOCK_ROUTE_LEGS = [
+  { distanceM: 8400, durationS: 720 },
+  { distanceM: 2150, durationS: 420 },
+  { distanceM: 640, durationS: 540 },
+  { distanceM: 12800, durationS: 1080 },
+];
+
+const formatDistance = (meters) => {
+  if (meters < 1000) return `${Math.round(meters)} m`;
+  const km = meters / 1000;
+  return `${km.toLocaleString('pl-PL', { maximumFractionDigits: km < 10 ? 1 : 0 })} km`;
+};
+
+const formatDuration = (seconds) => {
+  const totalMinutes = Math.round(seconds / 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours === 0) return `${minutes} min`;
+  if (minutes === 0) return `${hours} h`;
+  return `${hours} h ${minutes} min`;
+};
+
+const RouteLink = ({ leg, dimmed }) => (
+  <div className={`${styles.routeLink} ${dimmed ? styles.routeLinkDimmed : ''}`}>
+    <span className={styles.routeLinkTrack} />
+    <i className={`fas ${MOCK_ROUTE_ICON}`} aria-hidden="true" />
+    <span>
+      {formatDuration(leg.durationS)} - {formatDistance(leg.distanceM)}
+    </span>
+  </div>
+);
+
 //Koszyk dniia
-const Bucket = ({ bucket, pins, onRename }) => {
+const Bucket = ({ bucket, pins, collapsed, dragging ,onToggleCollapse, hoveredPinId, onRename, onDeletePin, onLocatePin, onHoverPin }) => {
   const { setNodeRef, isOver } = useDroppable({ id: bucket.key });
   const pinIds = pins.map((p) => p.id);
+  const color = dayColorHex(bucket.dayIndex);
+  const isUnassigned = bucket.dayIndex === null;
+
+  const mockLegs =
+    bucket.dayIndex === MOCK_ROUTE_DAY_INDEX
+      ? pins.slice(1).map((_, i) => MOCK_ROUTE_LEGS[i % MOCK_ROUTE_LEGS.length])
+      : [];
+  const mockTotals = mockLegs.reduce(
+    (acc, leg) => ({
+      distanceM: acc.distanceM + leg.distanceM,
+      durationS: acc.durationS + leg.durationS,
+    }),
+    { distanceM: 0, durationS: 0 }
+  );
+
   return (
-    <div className={styles.dayColumn}>
+    <div
+      ref={setNodeRef}
+      className={`${styles.dayColumn} ${collapsed ? styles.dayColumnCollapsed : ''} ${isOver ? styles.dayColumnOver : ''}`}
+    >
       <div className={styles.dayHeader}>
-        <span className={styles.dayName}>{bucket.label}</span>
-        <span className={styles.dayCount}>{pins.length}</span>
-      </div>
-      <SortableContext items={pinIds} strategy={verticalListSortingStrategy}>
-        <div
-          ref={setNodeRef}
-          className={`${styles.pinList} ${isOver ? styles.pinListOver : ''}`}
+        <span
+          className={`${styles.dayBadge} ${isUnassigned ? styles.dayBadgeMuted : ''}`}
+          style={{ background: color }}
         >
-          {pins.length === 0 ? (
-            <div className={styles.emptyState}>Brak pinezek</div>
-          ) : (
-            pins.map((pin) => <PinCard key={pin.id} pin={pin} onRename={onRename} />)
+          {isUnassigned ? '' : bucket.dayIndex + 1}
+        </span>
+        <div className={styles.dayTitle}>
+          <span className={styles.dayName}>{bucket.label}</span>
+          {mockLegs.length > 0 && (
+            <span className={styles.dayRouteSummary}>
+              {formatDuration(mockTotals.durationS)} - {formatDistance(mockTotals.distanceM)}
+            </span>
           )}
         </div>
-      </SortableContext>
+        <span className={styles.dayCount}>{pins.length}</span>
+        <button
+          type="button"
+          className={`${styles.dayToggle} ${collapsed ? styles.dayToggleCollapsed : ''}`}
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? `Rozwiń: ${bucket.label}` : `Zwiń: ${bucket.label}`}
+          onClick={() => onToggleCollapse(bucket.key)}
+        >
+          <i className="fas fa-chevron-down" aria-hidden="true" />
+        </button>
+      </div>
+      {!collapsed && (
+        <SortableContext items={pinIds} strategy={verticalListSortingStrategy}>
+          <div className={styles.pinList}>
+            {pins.length === 0 ? (
+              <div className={styles.emptyState}>Brak pinezek</div>
+            ) : (
+               pins.map((pin, i) => (
+                <Fragment key={pin.id}>
+                  {mockLegs[i - 1] && <RouteLink leg={mockLegs[i - 1]} dimmed={dragging} />}
+                  <PinCard
+                    pin={pin}
+                    onRename={onRename}
+                    onDelete={onDeletePin}
+                    onLocate={onLocatePin}
+                    onHoverChange={onHoverPin}
+                    order={i + 1}
+                    color={color}
+                    highlighted={pin.id === hoveredPinId}
+                  />
+                </Fragment>
+              ))
+            )}
+          </div>
+        </SortableContext>
+      )}
     </div>
   );
 };
@@ -778,6 +1073,13 @@ const PlannerPage = () => {
   const [pois, setPois] = useState([]);
   const [poiMessage, setPoiMessage] = useState('');
   const poiRequestRef = useRef(null);
+
+  const [map, setMap] = useState(null);
+  const [hoveredPinId, setHoveredPinId] = useState(null);
+  const [activeDragPin, setActiveDragPin] = useState(null);
+  const markerRefs = useRef(new Map());
+  const pendingLocateRef = useRef(null);
+  const [collapsedKeys, setCollapsedKeys] = useState(() => new Set());
 
   useEffect(() => () => {
     poiRequestRef.current?.abort();
@@ -858,6 +1160,87 @@ const PlannerPage = () => {
     return ids;
   }, [buckets, pinsByBucket]);
 
+  const hoveredPin = useMemo(
+    () => (hoveredPinId ? pins.find((p) => p.id === hoveredPinId) ?? null : null),
+    [hoveredPinId, pins]
+  );
+
+  const activeDragMeta = useMemo(() => {
+    if (!activeDragPin) return null;
+    const group = pinsByBucket[bucketKeyFromDayIndex(activeDragPin.dayIndex)] || [];
+    const index = group.findIndex((p) => p.id === activeDragPin.id);
+    return {
+      order: index === -1 ? group.length + 1 : index + 1,
+      color: dayColorHex(activeDragPin.dayIndex),
+    };
+  }, [activeDragPin, pinsByBucket]);
+
+  const setMarkerRef = (pinId) => (instance) => {
+    if (instance) markerRefs.current.set(pinId, instance);
+    else markerRefs.current.delete(pinId);
+  };
+
+  const locatePin = (pin) => {
+    if (!map || pin?.latitude == null || pin?.longitude == null) return;
+
+    const target = L.latLng(pin.latitude, pin.longitude);
+    const zoom = Math.max(map.getZoom(), FOCUS_ZOOM);
+    const openPopup = () => markerRefs.current.get(pin.id)?.openPopup();
+
+    if (pendingLocateRef.current) {
+      map.off('moveend', pendingLocateRef.current);
+      pendingLocateRef.current = null;
+    }
+
+    if (map.getCenter().distanceTo(target) < 1 && map.getZoom() === zoom) {
+      openPopup();
+      return;
+    }
+
+    const handler = () => {
+      pendingLocateRef.current = null;
+      openPopup();
+    };
+    pendingLocateRef.current = handler;
+    map.once('moveend', handler);
+    map.flyTo(target, zoom, { duration: 0.6 });
+  };
+
+  useEffect(() => {
+    if (!map) return undefined;
+    return () => {
+      if (pendingLocateRef.current) {
+        map.off('moveend', pendingLocateRef.current);
+        pendingLocateRef.current = null;
+      }
+    };
+  }, [map]);
+
+  const toggleBucket = (key) => {
+    setCollapsedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const allCollapsed = buckets.every((b) => collapsedKeys.has(b.key));
+
+  const toggleAllBuckets = () => {
+    setCollapsedKeys(allCollapsed ? new Set() : new Set(buckets.map((b) => b.key)));
+  };
+
+  const panelSummary = useMemo(() => {
+    const placed = Object.values(pinsByBucket).reduce((sum, group) => sum + group.length, 0);
+    const dayCount = buckets.length - 1;
+    const unassigned = pinsByBucket[UNASSIGNED_KEY]?.length ?? 0;
+    const parts = [pluralize(placed, PLACE_FORMS)];
+    if (dayCount > 0) parts.push(pluralize(dayCount, DAY_FORMS));
+    if (unassigned > 0) parts.push(pluralize(unassigned, UNASSIGNED_FORMS));
+    return parts.join(' - ');
+  }, [pinsByBucket, buckets]);
+
   //Pusty klik
   const handleEmptyMapClick = ({ lat, lng }) => {
     setContextMenuPos({ lat, lng });
@@ -913,6 +1296,12 @@ const PlannerPage = () => {
         dayIndex: null,
       });
       setPins((prev) => (prev.some((p) => p.id === created.id) ? prev : [...prev, created]));
+      setCollapsedKeys((prev) => {
+        if (!prev.has(UNASSIGNED_KEY)) return prev;
+        const next = new Set(prev);
+        next.delete(UNASSIGNED_KEY);
+        return next;
+      });
     } catch (err) {
       setError(err.message);
     }
@@ -949,7 +1338,24 @@ const PlannerPage = () => {
     }
   };
 
+  const confirmAndDelete = async (pin) => {
+    const result = await swalConfirmDelete(
+      'Usunąć punkt?',
+      `„${pin.name?.trim() || 'Bez nazwy'}” zniknie z planu dla wszystkich uczestników.`
+    );
+    if (!result.isConfirmed) return;
+    await handleDelete(pin.id);
+  };
+
+  const handleDragStart = (event) => {
+    setActiveDragPin(pins.find((p) => p.id === event.active.id) ?? null);
+    setHoveredPinId(null);
+  };
+
+  const handleDragCancel = () => setActiveDragPin(null);
+
   const handleDragEnd = async (event) => {
+    setActiveDragPin(null);
     const { active, over } = event;
     if (!over) return;
 
@@ -1033,6 +1439,7 @@ const PlannerPage = () => {
         {/* Mapa */}
         <Panel defaultSize={60} minSize={30} className={styles.mapPanel}>
           <MapContainer
+            ref={setMap}
             center={DEFAULT_CENTER}
             zoom={DEFAULT_ZOOM}
             className={styles.map}
@@ -1062,18 +1469,37 @@ const PlannerPage = () => {
               </Marker>
             ))}
 
+            {hoveredPin && (
+              <CircleMarker
+                center={[hoveredPin.latitude, hoveredPin.longitude]}
+                radius={18}
+                interactive={false}
+                pathOptions={{
+                  color: dayColorHex(hoveredPin.dayIndex),
+                  weight: 3,
+                  opacity: 0.9,
+                  fillOpacity: 0.15,
+                }}
+              />
+            )}
+
             {pins.map((pin) => (
               <Marker
                 key={pin.id}
+                ref={setMarkerRef(pin.id)}
                 position={[pin.latitude, pin.longitude]}
                 icon={getPinIcon(pin.dayIndex, endpointPinIds.has(pin.id))}
+                eventHandlers={{
+                  mouseover: () => setHoveredPinId(pin.id),
+                  mouseout: () => setHoveredPinId((c) => (c === pin.id ? null : c)),
+                }}
               >
                 <Popup>
                   <MarkerPopupContent
                     pin={pin}
                     onAddPin={handleCreatePin}
                     onEdit={handleRename}
-                    onDelete={handleDelete}
+                    onDelete={() => confirmAndDelete(pin)}
                   />
                 </Popup>
               </Marker>
@@ -1105,10 +1531,18 @@ const PlannerPage = () => {
 
         {/* Boxy */}
         <Panel defaultSize={40} minSize={20} className={styles.daysPanel}>
+          <div className={styles.daysToolbar}>
+            <span className={styles.daysSummary}>{panelSummary}</span>
+            <button type="button" className={styles.daysToolbarBtn} onClick={toggleAllBuckets}>
+              {allCollapsed ? 'Rozwiń wszystkie' : 'Zwiń wszystkie'}
+            </button>
+          </div>
           <DndContext
             sensors={sensors}
             collisionDetection={closestCorners}
+            onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
           >
             <div className={styles.daysList}>
               {buckets.map((bucket) => (
@@ -1116,10 +1550,29 @@ const PlannerPage = () => {
                   key={bucket.key}
                   bucket={bucket}
                   pins={pinsByBucket[bucket.key] || []}
+                  collapsed={collapsedKeys.has(bucket.key)}
+                  dragging={activeDragPin !== null}
+                  onToggleCollapse={toggleBucket}
+                  hoveredPinId={hoveredPinId}
                   onRename={handleRename}
+                  onDeletePin={confirmAndDelete}
+                  onLocatePin={locatePin}
+                  onHoverPin={setHoveredPinId}
                 />
               ))}
             </div>
+            {createPortal(
+              <DragOverlay dropAnimation={{ duration: 180, easing: 'cubic-bezier(0.2, 0, 0, 1)' }}>
+                {activeDragPin ? (
+                  <PinCardPreview
+                    pin={activeDragPin}
+                    order={activeDragMeta?.order ?? 1}
+                    color={activeDragMeta?.color}
+                  />
+                ) : null}
+              </DragOverlay>,
+              document.body
+            )}
           </DndContext>
         </Panel>
       </PanelGroup>
