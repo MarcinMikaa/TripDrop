@@ -71,22 +71,6 @@ const DAY_MARKER_COLORS = [
   '#7f4a2f',
 ];
 
-const DAY_HEX_COLORS = {
-  blue: '#38aadd',
-  green: '#70ab25',
-  orange: '#f69730',
-  purple: '#d252b9',
-  red: '#d63e2a',
-  cadetblue: '#436978',
-  darkgreen: '#728224',
-  darkblue: '#0067a3',
-  darkpurple: '#5b396b',
-  darkred: '#a23336',
-  gray: '#575757',
-};
-
-const dayColorHex = (dayIndex) => DAY_HEX_COLORS[markerColorForDay(dayIndex)];
-
 const UNASSIGNED_MARKER_COLOR = '#6f6f6f';
 const PIN_MARKER_WIDTH = 32;
 const PIN_MARKER_HEIGHT = 44;
@@ -998,7 +982,7 @@ const RouteLink = ({ leg, dimmed }) => (
 const Bucket = ({ bucket, pins, collapsed, dragging ,onToggleCollapse, hoveredPinId, onRename, onDeletePin, onLocatePin, onHoverPin }) => {
   const { setNodeRef, isOver } = useDroppable({ id: bucket.key });
   const pinIds = pins.map((p) => p.id);
-  const color = dayColorHex(bucket.dayIndex);
+  const color = markerColorForDay(bucket.dayIndex);
   const isUnassigned = bucket.dayIndex === null;
 
   const mockLegs =
@@ -1191,7 +1175,7 @@ const PlannerPage = () => {
     const index = group.findIndex((p) => p.id === activeDragPin.id);
     return {
       order: index === -1 ? group.length + 1 : index + 1,
-      color: dayColorHex(activeDragPin.dayIndex),
+      color: markerColorForDay(activeDragPin.dayIndex),
     };
   }, [activeDragPin, pinsByBucket]);
 
@@ -1496,7 +1480,7 @@ const PlannerPage = () => {
                 radius={18}
                 interactive={false}
                 pathOptions={{
-                  color: dayColorHex(hoveredPin.dayIndex),
+                  color: markerColorForDay(hoveredPin.dayIndex),
                   weight: 3,
                   opacity: 0.9,
                   fillOpacity: 0.15,
@@ -1509,7 +1493,7 @@ const PlannerPage = () => {
                 key={pin.id}
                 ref={setMarkerRef(pin.id)}
                 position={[pin.latitude, pin.longitude]}
-                icon={getPinIcon(pin.dayIndex, pin.userId, pin.userName, endpointPinIds.has(pin.id))}
+                icon={getPinIcon(pin.dayIndex, pin.userId, pin.userName)}
                 eventHandlers={{
                   mouseover: () => setHoveredPinId(pin.id),
                   mouseout: () => setHoveredPinId((c) => (c === pin.id ? null : c)),
