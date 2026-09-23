@@ -1,4 +1,13 @@
-const PALETTE = ['#5b8fa8', '#8ca882', '#7a9e6b', '#a8756b', '#8b7aa8', '#6b9ea8', '#a89a6b', '#9e6b8b'];
+const PALETTE = [
+  '#832129',
+  '#bd580f',
+  '#836f21',
+  '#21833b',
+  '#218379',
+  '#215883',
+  '#452183',
+  '#83215f',
+];
 
 export const colorForUser = (userId) => {
   if (!userId) return PALETTE[0];
