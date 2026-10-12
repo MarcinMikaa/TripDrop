@@ -128,8 +128,9 @@ const DayRoutes = ({ days, onRoutesComputed }) => {
   }, []);
 
   const removeAllLayers = useCallback(() => {
-    layersRef.current.forEach(({ group }) => {
+    layersRef.current.forEach(({ group }, key) => {
       if (map.hasLayer(group)) map.removeLayer(group);
+      reportRef.current?.(key, null);
     });
     layersRef.current.clear();
   }, [map]);
@@ -197,6 +198,7 @@ const DayRoutes = ({ days, onRoutesComputed }) => {
         if (!wanted.has(key)) {
           if (map.hasLayer(entry.group)) map.removeLayer(entry.group);
           layersRef.current.delete(key);
+          reportRef.current?.(key, null);
         }
       });
 

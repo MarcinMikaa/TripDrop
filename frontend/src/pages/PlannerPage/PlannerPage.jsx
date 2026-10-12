@@ -943,15 +943,7 @@ const PinCard = ({ pin, onRename, onDelete, onLocate, onHoverChange, order, colo
   );
 };
 
-// todo zmiana na prawdziwe dane trasy, na dole tylko atrapa
-const MOCK_ROUTE_DAY_INDEX = 0;
-const MOCK_ROUTE_ICON = 'fa-car';
-const MOCK_ROUTE_LEGS = [
-  { distanceM: 8400, durationS: 720 },
-  { distanceM: 2150, durationS: 420 },
-  { distanceM: 640, durationS: 540 },
-  { distanceM: 12800, durationS: 1080 },
-];
+const ROUTE_ICON = 'fa-car';
 
 const formatDistance = (meters) => {
   if (meters < 1000) return `${Math.round(meters)} m`;
@@ -971,31 +963,21 @@ const formatDuration = (seconds) => {
 const RouteLink = ({ leg, dimmed }) => (
   <div className={`${styles.routeLink} ${dimmed ? styles.routeLinkDimmed : ''}`}>
     <span className={styles.routeLinkTrack} />
-    <i className={`fas ${MOCK_ROUTE_ICON}`} aria-hidden="true" />
+    <i className={`fas ${ROUTE_ICON}`} aria-hidden="true" />
     <span>
-      {formatDuration(leg.durationS)} - {formatDistance(leg.distanceM)}
+      {formatDuration(leg.time)} - {formatDistance(leg.distance)}
     </span>
   </div>
 );
 
 //Koszyk dniia
-const Bucket = ({ bucket, pins, collapsed, dragging ,onToggleCollapse, hoveredPinId, onRename, onDeletePin, onLocatePin, onHoverPin }) => {
+const Bucket = ({ bucket, pins, route, collapsed, dragging ,onToggleCollapse, hoveredPinId, onRename, onDeletePin, onLocatePin, onHoverPin }) => {
   const { setNodeRef, isOver } = useDroppable({ id: bucket.key });
   const pinIds = pins.map((p) => p.id);
   const color = markerColorForDay(bucket.dayIndex);
   const isUnassigned = bucket.dayIndex === null;
 
-  const mockLegs =
-    bucket.dayIndex === MOCK_ROUTE_DAY_INDEX
-      ? pins.slice(1).map((_, i) => MOCK_ROUTE_LEGS[i % MOCK_ROUTE_LEGS.length])
-      : [];
-  const mockTotals = mockLegs.reduce(
-    (acc, leg) => ({
-      distanceM: acc.distanceM + leg.distanceM,
-      durationS: acc.durationS + leg.durationS,
-    }),
-    { distanceM: 0, durationS: 0 }
-  );
+  const legs = route?.legs?.length === pins.length - 1 ? route.legs : [];
 
   return (
     <div
@@ -1011,9 +993,9 @@ const Bucket = ({ bucket, pins, collapsed, dragging ,onToggleCollapse, hoveredPi
         </span>
         <div className={styles.dayTitle}>
           <span className={styles.dayName}>{bucket.label}</span>
-          {mockLegs.length > 0 && (
+          {legs.length > 0 && (
             <span className={styles.dayRouteSummary}>
-              {formatDuration(mockTotals.durationS)} - {formatDistance(mockTotals.distanceM)}
+              {formatDuration(route.time)} - {formatDistance(route.distance)}
             </span>
           )}
         </div>
@@ -1036,7 +1018,7 @@ const Bucket = ({ bucket, pins, collapsed, dragging ,onToggleCollapse, hoveredPi
             ) : (
                pins.map((pin, i) => (
                 <Fragment key={pin.id}>
-                  {mockLegs[i - 1] && <RouteLink leg={mockLegs[i - 1]} dimmed={dragging} />}
+                  {legs[i - 1] && <RouteLink leg={legs[i - 1]} dimmed={dragging} />}
                   <PinCard
                     pin={pin}
                     onRename={onRename}
@@ -1079,6 +1061,7 @@ const PlannerPage = () => {
   const markerRefs = useRef(new Map());
   const pendingLocateRef = useRef(null);
   const [collapsedKeys, setCollapsedKeys] = useState(() => new Set());
+  const [routeData, setRouteData] = useState({});
 
   useEffect(() => () => {
     poiRequestRef.current?.abort();
@@ -1165,6 +1148,18 @@ const PlannerPage = () => {
         .filter((day) => day.points.length >= 2),
     [buckets, pinsByBucket]
   );
+
+  const handleRoutesComputed = useCallback((dayKey, data) => {
+    setRouteData((prev) => {
+      if (!data) {
+        if (!prev[dayKey]) return prev;
+        const next = { ...prev };
+        delete next[dayKey];
+        return next;
+      }
+      return { ...prev, [dayKey]: data };
+    });
+  }, []);
 
   const hoveredPin = useMemo(
     () => (hoveredPinId ? pins.find((p) => p.id === hoveredPinId) ?? null : null),
@@ -1458,7 +1453,7 @@ const PlannerPage = () => {
               onPoiMessage={setPoiMessage}
             />
             <FitToPinsButton pins={pins} />
-            <DayRoutes days={routeDays} />
+            <DayRoutes days={routeDays} onRoutesComputed={handleRoutesComputed} />
             {/*
             <SearchAreaButton onSearch={handleSearchArea} onClear={handleClearPois} />
             */}
@@ -1557,6 +1552,7 @@ const PlannerPage = () => {
                   key={bucket.key}
                   bucket={bucket}
                   pins={pinsByBucket[bucket.key] || []}
+                  route={routeData[bucket.key]}
                   collapsed={collapsedKeys.has(bucket.key)}
                   dragging={activeDragPin !== null}
                   onToggleCollapse={toggleBucket}
