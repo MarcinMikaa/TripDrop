@@ -314,10 +314,19 @@ const DayRoutes = ({ days, onRoutesComputed }) => {
       return undefined;
     }
 
-    timerRef.current = setTimeout(() => synchronize(generation), ROUTE_DEBOUNCE_MS);
+    const needsFetch = days.some((day) => {
+      const signature = signatureFor(day);
+      if (layersRef.current.get(day.key)?.signature === signature) return false;
+      return !cacheRef.current.has(signature);
+    });
+
+    timerRef.current = setTimeout(
+      () => synchronize(generation),
+      needsFetch ? ROUTE_DEBOUNCE_MS : 0
+    );
 
     return () => clearTimeout(timerRef.current);
-  }, [enabled, synchronize, abortPending, removeAllLayers]);
+  }, [enabled, days, synchronize, abortPending, removeAllLayers]);
 
   useEffect(
     () => () => {

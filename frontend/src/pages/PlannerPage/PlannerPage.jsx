@@ -971,7 +971,7 @@ const RouteLink = ({ leg, dimmed }) => (
 );
 
 //Koszyk dniia
-const Bucket = ({ bucket, pins, route, collapsed, dragging ,onToggleCollapse, hoveredPinId, onRename, onDeletePin, onLocatePin, onHoverPin }) => {
+const Bucket = ({ bucket, pins, route, collapsed, hiddenOnMap, dragging ,onToggleCollapse, onToggleVisibility, hoveredPinId, onRename, onDeletePin, onLocatePin, onHoverPin }) => {
   const { setNodeRef, isOver } = useDroppable({ id: bucket.key });
   const pinIds = pins.map((p) => p.id);
   const color = markerColorForDay(bucket.dayIndex);
@@ -1000,6 +1000,16 @@ const Bucket = ({ bucket, pins, route, collapsed, dragging ,onToggleCollapse, ho
           )}
         </div>
         <span className={styles.dayCount}>{pins.length}</span>
+        <button
+          type="button"
+          className={styles.dayToggle}
+          aria-pressed={hiddenOnMap}
+          aria-label={hiddenOnMap ? `Pokaż na mapie: ${bucket.label}` : `Ukryj na mapie: ${bucket.label}`}
+          title={hiddenOnMap ? 'Pokaż na mapie' : 'Ukryj na mapie'}
+          onClick={() => onToggleVisibility(bucket.key)}
+        >
+          <i className={`fas ${hiddenOnMap ? 'fa-eye-slash' : 'fa-eye'}`} aria-hidden="true" />
+        </button>
         <button
           type="button"
           className={`${styles.dayToggle} ${collapsed ? styles.dayToggleCollapsed : ''}`}
@@ -1062,6 +1072,7 @@ const PlannerPage = () => {
   const pendingLocateRef = useRef(null);
   const [collapsedKeys, setCollapsedKeys] = useState(() => new Set());
   const [routeData, setRouteData] = useState({});
+  const [hiddenDayKeys, setHiddenDayKeys] = useState(() => new Set());
 
   useEffect(() => () => {
     poiRequestRef.current?.abort();
@@ -1149,10 +1160,35 @@ const PlannerPage = () => {
     [buckets, pinsByBucket]
   );
 
+  const visibleRouteDays = useMemo(
+    () => routeDays.filter((day) => !hiddenDayKeys.has(day.key)),
+    [routeDays, hiddenDayKeys]
+  );
+
+  const toggleBucketVisibility = useCallback((key) => {
+    setHiddenDayKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
+  const visiblePins = useMemo(
+    () => pins.filter((pin) => !hiddenDayKeys.has(bucketKeyFromDayIndex(pin.dayIndex))),
+    [pins, hiddenDayKeys]
+  );
+
+  const hiddenDayKeysRef = useRef(hiddenDayKeys);
+
+  useEffect(() => {
+    hiddenDayKeysRef.current = hiddenDayKeys;
+  }, [hiddenDayKeys]);
+
   const handleRoutesComputed = useCallback((dayKey, data) => {
     setRouteData((prev) => {
       if (!data) {
-        if (!prev[dayKey]) return prev;
+        if (!prev[dayKey] || hiddenDayKeysRef.current.has(dayKey)) return prev;
         const next = { ...prev };
         delete next[dayKey];
         return next;
@@ -1453,7 +1489,7 @@ const PlannerPage = () => {
               onPoiMessage={setPoiMessage}
             />
             <FitToPinsButton pins={pins} />
-            <DayRoutes days={routeDays} onRoutesComputed={handleRoutesComputed} />
+            <DayRoutes days={visibleRouteDays} onRoutesComputed={handleRoutesComputed} />
             {/*
             <SearchAreaButton onSearch={handleSearchArea} onClear={handleClearPois} />
             */}
@@ -1471,7 +1507,7 @@ const PlannerPage = () => {
               </Marker>
             ))}
 
-            {hoveredPin && (
+            {hoveredPin && !hiddenDayKeys.has(bucketKeyFromDayIndex(hoveredPin.dayIndex)) && (
               <CircleMarker
                 center={[hoveredPin.latitude, hoveredPin.longitude]}
                 radius={18}
@@ -1485,7 +1521,7 @@ const PlannerPage = () => {
               />
             )}
 
-            {pins.map((pin) => (
+            {visiblePins.map((pin) => (
               <Marker
                 key={pin.id}
                 ref={setMarkerRef(pin.id)}
@@ -1554,8 +1590,10 @@ const PlannerPage = () => {
                   pins={pinsByBucket[bucket.key] || []}
                   route={routeData[bucket.key]}
                   collapsed={collapsedKeys.has(bucket.key)}
+                  hiddenOnMap={hiddenDayKeys.has(bucket.key)}
                   dragging={activeDragPin !== null}
                   onToggleCollapse={toggleBucket}
+                  onToggleVisibility={toggleBucketVisibility}
                   hoveredPinId={hoveredPinId}
                   onRename={handleRename}
                   onDeletePin={confirmAndDelete}
