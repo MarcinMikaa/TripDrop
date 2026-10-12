@@ -1156,6 +1156,8 @@ const PlannerPage = () => {
           label: bucket.label,
           color: markerColorForDay(bucket.dayIndex),
           points: (pinsByBucket[bucket.key] || []).map((pin) => ({
+            id: pin.id,
+            name: pin.name?.trim() || 'Bez nazwy',
             lat: pin.latitude,
             lng: pin.longitude,
           })),
@@ -1250,6 +1252,7 @@ const PlannerPage = () => {
     setContextMenuPos({ lat, lng });
   };
 
+  /*
   const handleSearchArea = async (bounds, zoom) => {
     if (zoom < POI_MIN_ZOOM) {
       setPoiMessage('Przybliż mapę, żeby wyszukać miejsca w okolicy.');
@@ -1285,7 +1288,7 @@ const PlannerPage = () => {
     setPois([]);
     setPoiMessage('');
   };
-
+ */
   const handleSearchResult = (lat, lng, name) => {
     setContextMenuPos({ lat, lng, name });
   };
@@ -1309,8 +1312,7 @@ const PlannerPage = () => {
     } catch (err) {
       setError(err.message);
     }
-  };
-
+  }; 
   const handleRename = async (pointId, newName) => {
     const target = pins.find((p) => p.id === pointId);
     if (!target) return;

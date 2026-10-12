@@ -589,3 +589,8 @@
   font-size: 0.8rem;
   color: var(--text);
 }
+
+:global(.leaflet-container:focus:not(:focus-visible)),
+:global(.leaflet-interactive:focus:not(:focus-visible)) {
+  outline: none;
+}

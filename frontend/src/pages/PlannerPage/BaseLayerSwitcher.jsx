@@ -44,15 +44,23 @@ const BASE_LAYERS = [
 ];
 
 const PREVIEW_MIN_ZOOM = 3;
+const TILE_KEEP_BUFFER = 1;
+
+const TILE_OPTIONS = {
+  minZoom: PREVIEW_MIN_ZOOM,
+  keepBuffer: TILE_KEEP_BUFFER,
+  updateWhenZooming: false,
+};
 
 const createBaseLayer = (entry) => {
   if (entry.url) {
     return L.tileLayer(entry.url, {
+      ...TILE_OPTIONS,
       maxZoom: entry.maxZoom ?? 19,
       attribution: entry.attribution,
     });
   }
-  return L.tileLayer.provider(entry.provider);
+  return L.tileLayer.provider(entry.provider, { ...TILE_OPTIONS });
 };
 
 const createEntry = (entry) => {
@@ -65,8 +73,9 @@ const createEntry = (entry) => {
 
   const overlays = entry.overlays.map((overlay, index) =>
     L.tileLayer(overlay.url, {
+      ...TILE_OPTIONS,
       maxZoom: 19,
-      minZoom: overlay.minZoom ?? 0,
+      minZoom: overlay.minZoom ?? PREVIEW_MIN_ZOOM,
       opacity: overlay.opacity ?? 1,
       zIndex: index + 2,
       attribution: ESRI_ATTRIBUTION,
