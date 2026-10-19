@@ -34,6 +34,7 @@ namespace TripDrop.Api
             builder.Services.AddScoped<IFriendshipRepository, FriendshipRepository>();
             builder.Services.AddScoped<ITripPointRepository, TripPointRepository>();
             builder.Services.AddHttpClient<IRealtimeNotifier, RealtimeNotifier>();
+            builder.Services.AddScoped<IPublishedTripRepository, PublishedTripRepository>();
 
             AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
