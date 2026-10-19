@@ -9,6 +9,9 @@ const ROUTE_PROFILE = 'driving';
 const ROUTE_WEIGHT = 5;
 const ROUTE_OPACITY = 0.75;
 const ROUTE_HOVER_WEIGHT = 8;
+const ROUTE_CASING_COLOR = '#0a0a0a';
+const ROUTE_CASING_WEIGHT = 12;
+const ROUTE_CASING_OPACITY = 0.85;
 const ROUTE_DEBOUNCE_MS = 600;
 const MAX_CONCURRENT_ROUTES = 2;
 const ROUTE_CACHE_LIMIT = 60;
@@ -51,27 +54,39 @@ const buildLegs = (route, points) => {
   return legs;
 };
 
-const metaRow = (term, value) => {
-  if (!value) return '';
-  return `<dt>${term}</dt><dd>${value}</dd>`;
-};
+const detailRows = (entries) => entries.filter((entry) => entry.value);
 
-const segmentMarkup = (day, leg) =>
-  `<dl class="${styles.popupMeta}">` +
-  metaRow('Odcinek', `${leg.fromName} - ${leg.toName}`) +
-  metaRow('Dystans', formatDistance(leg.distance)) +
-  metaRow('Czas', formatDuration(leg.time)) +
-  '</dl>';
+const segmentDetails = (day, leg) => ({
+  id: `${day.key}|odcinek|${leg.index}`,
+  dayKey: day.key,
+  legIndex: leg.index,
+  title: day.label,
+  scope: 'Odcinek',
+  rows: detailRows([
+    { term: 'Odcinek', value: `${leg.fromName} - ${leg.toName}` },
+    { term: 'Dystans', value: formatDistance(leg.distance) },
+    { term: 'Czas', value: formatDuration(leg.time) },
+  ]),
+});
 
-const routeMarkup = (day, result) =>
-  `<dl class="${styles.popupMeta}">` +
-  metaRow('Trasa', `${day.points[0]?.name ?? ''} - ${day.points[day.points.length - 1]?.name ?? ''}`) +
-  metaRow('Przystanki', String(day.points.length)) +
-  metaRow('Dystans', formatDistance(result.distance)) +
-  metaRow('Czas', formatDuration(result.time)) +
-  '</dl>';
+const routeDetails = (day, result) => ({
+  id: `${day.key}|trasa`,
+  dayKey: day.key,
+  legIndex: null,
+  title: day.label,
+  scope: 'Cała trasa',
+  rows: detailRows([
+    {
+      term: 'Trasa',
+      value: `${day.points[0]?.name ?? ''} - ${day.points[day.points.length - 1]?.name ?? ''}`,
+    },
+    { term: 'Przystanki', value: String(day.points.length) },
+    { term: 'Dystans', value: formatDistance(result.distance) },
+    { term: 'Czas', value: formatDuration(result.time) },
+  ]),
+});
 
-const buildPopupContent = (day, leg, result) => {
+const buildPopupContent = (day, leg, result, line, selectRef) => {
   const container = L.DomUtil.create('div', styles.popup);
 
   const title = L.DomUtil.create('div', styles.popupName, container);
@@ -85,22 +100,22 @@ const buildPopupContent = (day, leg, result) => {
   routeBtn.type = 'button';
   routeBtn.textContent = 'Dane całej trasy';
 
-  const details = L.DomUtil.create('div', '', container);
-
   L.DomEvent.on(segmentBtn, 'click', (event) => {
     L.DomEvent.stop(event);
-    details.innerHTML = segmentMarkup(day, leg);
+    selectRef.current?.(segmentDetails(day, leg));
+    line.closePopup();
   });
 
   L.DomEvent.on(routeBtn, 'click', (event) => {
     L.DomEvent.stop(event);
-    details.innerHTML = routeMarkup(day, result);
+    selectRef.current?.(routeDetails(day, result));
+    line.closePopup();
   });
 
   return container;
 };
 
-const DayRoutes = ({ days, onRoutesComputed }) => {
+const DayRoutes = ({ days, details, onRoutesComputed, onDetailsSelect }) => {
   const map = useMap();
   const [enabled, setEnabled] = useState(false);
 
@@ -111,10 +126,16 @@ const DayRoutes = ({ days, onRoutesComputed }) => {
   const timerRef = useRef(null);
   const generationRef = useRef(0);
   const reportRef = useRef(onRoutesComputed);
+  const selectRef = useRef(onDetailsSelect);
+  const detailsRef = useRef(details);
 
   useEffect(() => {
     reportRef.current = onRoutesComputed;
   }, [onRoutesComputed]);
+
+  useEffect(() => {
+    selectRef.current = onDetailsSelect;
+  }, [onDetailsSelect]);
 
   const abortPending = useCallback(() => {
     requestsRef.current.forEach((request) => {
@@ -126,6 +147,30 @@ const DayRoutes = ({ days, onRoutesComputed }) => {
     });
     requestsRef.current.clear();
   }, []);
+
+  const applyHighlight = useCallback(() => {
+    const selection = detailsRef.current;
+
+    layersRef.current.forEach((entry, key) => {
+      entry.lines.forEach(({ index, line, casing }) => {
+        const active =
+          selection?.dayKey === key &&
+          (selection.legIndex === null || selection.legIndex === index);
+
+        casing.setStyle({ opacity: active ? ROUTE_CASING_OPACITY : 0 });
+
+        if (active) {
+          casing.bringToFront();
+          line.bringToFront();
+        }
+      });
+    });
+  }, []);
+
+  useEffect(() => {
+    detailsRef.current = details;
+    applyHighlight();
+  }, [details, applyHighlight]);
 
   const removeAllLayers = useCallback(() => {
     layersRef.current.forEach(({ group }, key) => {
@@ -151,8 +196,16 @@ const DayRoutes = ({ days, onRoutesComputed }) => {
       if (previous && map.hasLayer(previous.group)) map.removeLayer(previous.group);
 
       const group = L.layerGroup();
+      const lines = [];
 
       result.legs.forEach((leg) => {
+        const casing = L.polyline(leg.coordinates, {
+          color: ROUTE_CASING_COLOR,
+          weight: ROUTE_CASING_WEIGHT,
+          opacity: 0,
+          interactive: false,
+        });
+
         const line = L.polyline(leg.coordinates, {
           color: day.color,
           weight: ROUTE_WEIGHT,
@@ -164,16 +217,19 @@ const DayRoutes = ({ days, onRoutesComputed }) => {
           { sticky: true }
         );
 
-        line.bindPopup(() => buildPopupContent(day, leg, result));
+        line.bindPopup(() => buildPopupContent(day, leg, result, line, selectRef));
 
         line.on('mouseover', () => line.setStyle({ weight: ROUTE_HOVER_WEIGHT }));
         line.on('mouseout', () => line.setStyle({ weight: ROUTE_WEIGHT }));
 
+        group.addLayer(casing);
         group.addLayer(line);
+        lines.push({ index: leg.index, line, casing });
       });
 
       group.addTo(map);
-      layersRef.current.set(day.key, { group, signature });
+      layersRef.current.set(day.key, { group, signature, lines });
+      applyHighlight();
 
       reportRef.current?.(day.key, {
         legs: result.legs.map((leg) => ({
@@ -187,7 +243,7 @@ const DayRoutes = ({ days, onRoutesComputed }) => {
         time: result.time,
       });
     },
-    [map]
+    [map, applyHighlight]
   );
 
   const synchronize = useCallback(

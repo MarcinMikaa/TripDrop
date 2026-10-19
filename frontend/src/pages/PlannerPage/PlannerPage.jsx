@@ -944,6 +944,8 @@ const PinCard = ({ pin, onRename, onDelete, onLocate, onHoverChange, order, colo
 };
 
 const ROUTE_ICON = 'fa-car';
+const ROUTE_DETAILS_MIN_HEIGHT = 140;
+const ROUTE_DETAILS_MAX_RATIO = 0.6;
 
 const formatDistance = (meters) => {
   if (meters < 1000) return `${Math.round(meters)} m`;
@@ -969,6 +971,87 @@ const RouteLink = ({ leg, dimmed }) => (
     </span>
   </div>
 );
+
+const RouteDetailsBox = ({ details, height, onResize, onClose }) => {
+  const boxRef = useRef(null);
+
+  const handleResizeStart = useCallback(
+    (event) => {
+      if (event.button !== 0) return;
+      const box = boxRef.current;
+      if (!box) return;
+
+      event.preventDefault();
+
+      const startY = event.clientY;
+      const startHeight = box.offsetHeight;
+      const limit = (box.parentElement?.clientHeight ?? 0) * ROUTE_DETAILS_MAX_RATIO;
+
+      const handleMove = (moveEvent) => {
+        const next = startHeight + (startY - moveEvent.clientY);
+        onResize(Math.min(Math.max(next, ROUTE_DETAILS_MIN_HEIGHT), limit));
+      };
+
+      const handleEnd = () => {
+        window.removeEventListener('pointermove', handleMove);
+        window.removeEventListener('pointerup', handleEnd);
+        window.removeEventListener('pointercancel', handleEnd);
+      };
+
+      window.addEventListener('pointermove', handleMove);
+      window.addEventListener('pointerup', handleEnd);
+      window.addEventListener('pointercancel', handleEnd);
+    },
+    [onResize]
+  );
+
+  if (!details) return null;
+
+  const dayIndex = dayIndexFromBucketKey(details.dayKey);
+
+  return (
+    <div
+      ref={boxRef}
+      className={`${styles.routeDetails} ${height ? styles.routeDetailsResized : ''}`}
+      style={height ? { height: `${height}px` } : undefined}
+    >
+      <div
+        className={styles.routeDetailsHandle}
+        onPointerDown={handleResizeStart}
+        title="Przeciągnij, aby zmienić wysokość"
+      />
+      <div className={styles.routeDetailsHeader}>
+        <span
+          className={styles.dayBadge}
+          style={{ background: markerColorForDay(dayIndex) }}
+        >
+          {dayIndex === null ? '' : dayIndex + 1}
+        </span>
+        <div className={styles.routeDetailsTitle}>
+          <span className={styles.dayName}>{details.title}</span>
+          <span className={styles.dayRouteSummary}>{details.scope}</span>
+        </div>
+        <button
+          type="button"
+          className={styles.dayToggle}
+          title="Zamknij"
+          aria-label="Zamknij dane trasy"
+          onClick={onClose}
+        >
+          <i className="fas fa-xmark" aria-hidden="true" />
+        </button>
+      </div>
+      <div className={styles.routeDetailsBody}>
+        {details.rows.map((row) => (
+          <div key={row.term} className={styles.routeDetailsRow}>
+            <span className={styles.routeDetailsTerm}>{row.term}</span>
+            <span className={styles.routeDetailsValue}>{row.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 //Koszyk dniia
 const Bucket = ({ bucket, pins, route, collapsed, hiddenOnMap, dragging ,onToggleCollapse, onToggleVisibility, hoveredPinId, onRename, onDeletePin, onLocatePin, onHoverPin }) => {
@@ -1073,6 +1156,8 @@ const PlannerPage = () => {
   const [collapsedKeys, setCollapsedKeys] = useState(() => new Set());
   const [routeData, setRouteData] = useState({});
   const [hiddenDayKeys, setHiddenDayKeys] = useState(() => new Set());
+  const [routeDetails, setRouteDetails] = useState(null);
+  const [routeDetailsHeight, setRouteDetailsHeight] = useState(null);
 
   useEffect(() => () => {
     poiRequestRef.current?.abort();
@@ -1185,7 +1270,13 @@ const PlannerPage = () => {
     hiddenDayKeysRef.current = hiddenDayKeys;
   }, [hiddenDayKeys]);
 
+  const clearRouteDetails = useCallback(() => {
+    setRouteDetails(null);
+    setRouteDetailsHeight(null);
+  }, [setRouteDetails, setRouteDetailsHeight]);
+
   const handleRoutesComputed = useCallback((dayKey, data) => {
+    setRouteDetails((prev) => (prev?.dayKey === dayKey ? null : prev));
     setRouteData((prev) => {
       if (!data) {
         if (!prev[dayKey] || hiddenDayKeysRef.current.has(dayKey)) return prev;
@@ -1489,7 +1580,12 @@ const PlannerPage = () => {
               onPoiMessage={setPoiMessage}
             />
             <FitToPinsButton pins={pins} />
-            <DayRoutes days={visibleRouteDays} onRoutesComputed={handleRoutesComputed} />
+            <DayRoutes
+              days={visibleRouteDays}
+              details={routeDetails}
+              onRoutesComputed={handleRoutesComputed}
+              onDetailsSelect={setRouteDetails}
+            />
             {/*
             <SearchAreaButton onSearch={handleSearchArea} onClear={handleClearPois} />
             */}
@@ -1560,6 +1656,12 @@ const PlannerPage = () => {
             <RemoteCursors others={others} />
             <PresenceBar others={present} />
           </MapContainer>
+          <RouteDetailsBox
+            details={routeDetails}
+            height={routeDetailsHeight}
+            onResize={setRouteDetailsHeight}
+            onClose={clearRouteDetails}
+          />
         </Panel>
 
         {/* Bar */}
