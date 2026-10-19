@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { tripService } from '../../services/tripService';
+import { tripService } from '../../services/TripService';
 import { friendshipService } from '../../services/FriendshipService';
 import { swalError, swalConfirmDelete, toastSuccess } from '../../utils/swal';
+import PublicationTab from './PublicationTab';
 import styles from './ManageTripPage.module.scss';
 
 const NAV_ITEMS = [
   { key: 'info', icon: 'circle-info', label: 'Podstawowe informacje' },
   { key: 'participants', icon: 'users', label: 'Uczestnicy' },
   { key: 'points', icon: 'route', label: 'Punkty trasy' },
+  { key: 'share', icon: 'share-nodes', label: 'Udostępnianie', ownerOnly: true },
   { key: 'settings', icon: 'gear', label: 'Ustawienia' },
 ];
 
@@ -52,7 +54,13 @@ const ManageTripPage = () => {
         startDate: form.startDate || null, endDate: form.endDate || null,
       });
 
-      setTrip(prev => ({ ...prev, name: form.name.trim(), description: form.description.trim() || null }));
+      setTrip(prev => ({
+        ...prev,
+        name: form.name.trim(),
+        description: form.description.trim() || null,
+        startDate: form.startDate || null,
+        endDate: form.endDate || null,
+      }));
       await toastSuccess('Zapisano zmiany!');
     } catch (err) {
       await swalError('Błąd', err.message);
@@ -111,14 +119,14 @@ const ManageTripPage = () => {
           <div className={styles.topbarName}>{trip.name}</div>
           <div className={styles.topbarMeta}>
             {trip.startDate && `${formatDate(trip.startDate)} — ${formatDate(trip.endDate)}`}
-            {' · '}{trip.participantCount + 1} uczestników
+            {' - '}{trip.participantCount + 1} uczestników
           </div>
         </div>
       </div>
 
       <div className={styles.shell}>
         <div className={styles.nav}>
-          {NAV_ITEMS.map((item) => (
+          {NAV_ITEMS.filter((item) => !item.ownerOnly || trip.isOwner).map((item) => (
             <div
               key={item.key}
               className={`${styles.navItem} ${activeTab === item.key ? styles.active : ''} ${item.disabled ? styles.disabled : ''}`}
@@ -194,6 +202,10 @@ const ManageTripPage = () => {
                 </div>
               )}
             </>
+          )}
+
+          {activeTab === 'share' && trip.isOwner && (
+            <PublicationTab trip={trip} onGoToInfo={() => setActiveTab('info')} />
           )}
         </div>
       </div>

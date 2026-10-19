@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import { swalError } from '../../utils/swal';
 import styles from './LoginPage.module.scss';
@@ -7,6 +7,10 @@ import styles from './LoginPage.module.scss';
 const LoginPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const from = location.state?.from;
+  const returnTo = typeof from === 'string' && from.startsWith('/') && !from.startsWith('//') ? from : '/';
 
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [isLoading, setIsLoading] = useState(false);
@@ -19,7 +23,7 @@ const LoginPage = () => {
 
     try {
       await login(formData.email, formData.password);
-      navigate('/');
+      navigate(returnTo, { replace: true });
     } catch (err) {
       await swalError('Błąd logowania', err.message);
     } finally {
@@ -117,7 +121,8 @@ const LoginPage = () => {
             </button>
           </form>
           <p className={styles.switchLink}>
-            Nie masz konta? <span onClick={() => navigate('/register')}>Zarejestruj się</span>
+            Nie masz konta?{' '}
+            <span onClick={() => navigate('/register', { state: location.state })}>Zarejestruj się</span>
           </p>
         </div>
       </div>

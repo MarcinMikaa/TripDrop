@@ -16,6 +16,7 @@ namespace TripDrop.Infrastructure.Persistence
         public DbSet<Friendship> Friendships => Set<Friendship>();
         public DbSet<TripParticipant> TripParticipants => Set<TripParticipant>();
         public DbSet<TripPoint> TripPoints => Set<TripPoint>();
+        public DbSet<PublishedTrip> PublishedTrips => Set<PublishedTrip>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -66,6 +67,11 @@ namespace TripDrop.Infrastructure.Persistence
                     .WithMany(u => u.OwnedTrips)
                     .HasForeignKey(e => e.OwnerId)
                     .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne<PublishedTrip>()
+                    .WithMany()
+                    .HasForeignKey(e => e.SourcePublishedTripId)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             modelBuilder.Entity<TripParticipant>(entity =>
@@ -111,6 +117,50 @@ namespace TripDrop.Infrastructure.Persistence
 
                 entity.HasIndex(e => e.TripId);
                 entity.HasIndex(e => e.Location).HasMethod("GIST");
+            });
+
+            modelBuilder.Entity<PublishedTrip>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Title).IsRequired().HasMaxLength(80);
+                entity.Property(e => e.Description).HasMaxLength(1000);
+                entity.Property(e => e.Region).HasMaxLength(100);
+                entity.Property(e => e.SearchText).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Tags).HasColumnType("text[]").IsRequired();
+
+                entity.Property(e => e.Visibility)
+                    .HasConversion<string>()
+                    .HasMaxLength(20)
+                    .IsRequired();
+
+                entity.Property(e => e.Status)
+                    .HasConversion<string>()
+                    .HasMaxLength(20)
+                    .IsRequired();
+
+                entity.Property(e => e.TravelMode).HasMaxLength(20);
+                entity.Property(e => e.Center)
+                    .HasColumnType("geography (Point, 4326)")
+                    .IsRequired();
+                entity.Property(e => e.Content).HasColumnType("jsonb").IsRequired();
+                entity.Property(e => e.PublishedAt).IsRequired();
+
+                entity.HasOne(e => e.Author)
+                    .WithMany()
+                    .HasForeignKey(e => e.AuthorId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.SourceTrip)
+                    .WithMany()
+                    .HasForeignKey(e => e.SourceTripId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasIndex(e => e.SourceTripId).IsUnique();
+                entity.HasIndex(e => new { e.Status, e.Visibility, e.PublishedAt });
+                entity.HasIndex(e => e.AuthorId);
+                entity.HasIndex(e => e.Tags).HasMethod("GIN");
+                entity.HasIndex(e => e.Center).HasMethod("GIST");
             });
         }
     }

@@ -15,6 +15,7 @@ namespace TripDrop.Domain.Entities
         public DateTime? StartDate { get; private set; }
         public DateTime? EndDate { get; private set; }
         public DateTime CreatedAt { get; private set; }
+        public Guid? SourcePublishedTripId { get; private set; }
 
         public virtual User Owner { get; private set; } = null!;
         public ICollection<TripParticipant> Participants { get; private set; } = new List<TripParticipant>();
@@ -38,6 +39,11 @@ namespace TripDrop.Domain.Entities
             Description = description;
             StartDate = startDate;
             EndDate = endDate;
+        }
+
+        public void MarkAsCopiedFrom(Guid publishedTripId)
+        {
+            SourcePublishedTripId = publishedTripId;
         }
     }
 }

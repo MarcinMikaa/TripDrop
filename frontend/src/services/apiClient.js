@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5206';
+
 const apiClient = axios.create({
-  baseURL: 'https://localhost:7196/api',
+  baseURL: `${API_BASE}/api`,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -30,5 +32,18 @@ apiClient.interceptors.response.use(
     return Promise.reject(error);
   },
 );
+
+export const toApiError = (err, fallback) => {
+  if (axios.isCancel(err)) {
+    return Object.assign(new Error('Zapytanie przerwane.'), { canceled: true });
+  }
+  if (!err.response) {
+    return Object.assign(new Error('Brak połączenia z serwerem.'), { status: 0 });
+  }
+  const body = err.response.data;
+  return Object.assign(new Error(body?.error || body?.Error || fallback), {
+    status: err.response.status,
+  });
+};
 
 export default apiClient;

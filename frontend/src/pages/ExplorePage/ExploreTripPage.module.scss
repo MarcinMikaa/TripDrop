@@ -1,0 +1,297 @@
+.panelScroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--stone);
+}
+
+.panelScrollStacked {
+  flex: none;
+  overflow: visible;
+
+  .stickyToolbar {
+    position: static;
+  }
+}
+
+.intro {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 18px 20px 20px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--text);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--steel);
+    outline-offset: 2px;
+  }
+}
+
+.titleRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+}
+
+.title {
+  flex: 1;
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.readOnlyChip {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  background: var(--stone);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: help;
+}
+
+.badge {
+  padding: 2px 10px;
+  border-radius: 99px;
+  background: rgba(200, 168, 130, 0.25);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.byline {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag {
+  padding: 3px 10px;
+  border-radius: 99px;
+  background: var(--stone);
+  font-size: 0.78rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.primaryBtn,
+.secondaryBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 0.875rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:focus-visible {
+    outline: 2px solid var(--steel);
+    outline-offset: 2px;
+  }
+}
+
+.primaryBtn {
+  border: 1px solid var(--obsidian);
+  background: var(--obsidian);
+  color: var(--linen);
+  font-weight: 600;
+
+  &:hover {
+    background: #2a2a2a;
+  }
+}
+
+.secondaryBtn {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+
+  &:hover {
+    background: var(--stone);
+  }
+}
+
+.description {
+  max-width: 65ch;
+  margin: 4px 0 0;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+.descriptionClamped {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+}
+
+.linkBtn {
+  margin-top: 4px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--steel);
+  font: inherit;
+  font-size: 0.82rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.footnote {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.stickyToolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.daysList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+.dayFocus {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: default;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--steel);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+.pinButton {
+  width: 100%;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+
+  &:focus-visible {
+    outline: 2px solid var(--steel);
+    outline-offset: -2px;
+  }
+}
+
+.cardSpacer {
+  width: 20px;
+  flex-shrink: 0;
+}
+
+.popupMeta {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.stackMap {
+  position: relative;
+  height: 45vh;
+  min-height: 260px;
+  border-bottom: 1px solid var(--border);
+}
+
+.loading {
+  padding: 48px 16px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 64px 16px;
+  text-align: center;
+
+  p {
+    margin: 0;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+}
+
+.stateTitle {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.6rem;
+  font-weight: 600;
+}
+
+.stateActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}

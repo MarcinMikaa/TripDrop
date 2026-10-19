@@ -8,6 +8,8 @@ import RegisterPage from './pages/RegisterPage/RegisterPage';
 import FriendsPage from './pages/FriendsPage/FriendsPage';
 import CreateTripPage from './pages/CreateTripPage/CreateTripPage';
 import ManageTripPage from './pages/ManageTripPage/ManageTripPage';
+import ExplorePage from './pages/ExplorePage/ExplorePage';
+import ExploreTripPage from './pages/ExplorePage/ExploreTripPage';
 import useAuth      from './hooks/useAuth';
 
 const ProtectedRoute = ({ children }) => {
@@ -28,6 +30,9 @@ function App() {
         <Route path="/"        element={<HomePage />}    />
         <Route path="login"    element={<LoginPage />}   />
         <Route path="register" element={<RegisterPage />}/>
+
+        <Route path="/explore"     element={<ExplorePage />} />
+        <Route path="/explore/:id" element={<ExploreTripPage />} />
 
         <Route path="/trips"   
           element={

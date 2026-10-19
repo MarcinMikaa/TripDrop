@@ -75,6 +75,11 @@ export default function Navbar() {
               */}
             </>
           )}
+          <li>
+            <NavLink to="/explore" className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ''}`}>
+              Odkrywaj
+            </NavLink>
+          </li>
         </ul>
 
         <div className={styles.auth}>
