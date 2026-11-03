@@ -89,6 +89,31 @@ namespace TripDrop.Api.Controllers
                 return BadRequest(new { Error = ex.Message });
             }
         }
+
+        [HttpDelete]
+        public async Task<IActionResult> Withdraw(Guid tripId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                var publication = await _mediator.Send(
+                    new WithdrawPublicationCommand(tripId, userId), cancellationToken);
+
+                return Ok(publication);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (ForbiddenAccessException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { Error = ex.Message });
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(new { Error = ex.Message });
+            }
+        }
     }
 
     public record PublishTripDto(

@@ -6,10 +6,12 @@ namespace TripDrop.Application.Trips.Commands
     public class DeleteTripCommandHandler : IRequestHandler<DeleteTripCommand, Unit>
     {
         private readonly ITripRepository _repository;
+        private readonly IPublishedTripRepository _publications;
 
-        public DeleteTripCommandHandler(ITripRepository repository)
+        public DeleteTripCommandHandler(ITripRepository repository, IPublishedTripRepository publications)
         {
             _repository = repository;
+            _publications = publications;
         }
 
         public async Task<Unit> Handle(DeleteTripCommand request, CancellationToken cancellationToken)
@@ -21,6 +23,9 @@ namespace TripDrop.Application.Trips.Commands
 
             if (trip.OwnerId != request.CurrentUserId)
                 throw new UnauthorizedAccessException("Tylko właściciel może usunąć wycieczkę.");
+
+            var publication = await _publications.GetBySourceTripIdAsync(trip.Id, cancellationToken);
+            publication?.DetachFromDeletedSource();
 
             await _repository.DeleteAsync(request.TripId, cancellationToken);
             await _repository.SaveChangesAsync(cancellationToken);

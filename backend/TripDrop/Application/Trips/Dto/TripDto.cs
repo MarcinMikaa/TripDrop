@@ -11,6 +11,7 @@
         DateTime CreatedAt,
         bool IsOwner,
         int ParticipantCount,
-        IEnumerable<TripParticipantDto> Participants
+        IEnumerable<TripParticipantDto> Participants,
+        string? PublicationVisibility = null
     );
 }
