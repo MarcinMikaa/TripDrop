@@ -1,9 +1,9 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { friendshipService } from '../services/FriendshipService';
-import { useFriendRequestsRealtime } from '../hooks/useFriendRequestsRealtime';
+import { friendshipService } from '../../services/FriendshipService';
+import { useFriendRequestsRealtime } from '../../hooks/useFriendRequestsRealtime';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import useAuth from '../hooks/useAuth';
+import useAuth from '../../hooks/useAuth';
 import styles from './Navbar.module.scss';
 
 export default function Navbar() {
@@ -29,7 +29,6 @@ export default function Navbar() {
       const data = await friendshipService.getPending();
       setPendingCount(data.length);
     } catch {
-      // cichy błąd — licznik nie jest krytyczny
     }
   }, [isAuthenticated]);
 

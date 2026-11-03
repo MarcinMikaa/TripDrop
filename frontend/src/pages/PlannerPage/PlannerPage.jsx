@@ -44,6 +44,11 @@ import useAuth from '../../hooks/useAuth';
 import { useTripPresence } from '../../hooks/useTripPresence';
 import { colorForUser } from '../../utils/useColor';
 import { swalConfirmDelete } from '../../utils/swal';
+import DayExportMenu from '../../components/TripExport/DayExportMenu';
+import TripExportMenu from '../../components/TripExport/TripExportMenu';
+import NavigateLink from '../../components/TripExport/NavigateLink';
+import { googleNavigateLink } from '../../utils/tripExport';
+import { getTravelMode } from '../../hooks/useTravelMode';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -676,6 +681,7 @@ const MarkerPopupContent = ({ pin, onAddPin, onEdit, onDelete }) => {
           Usuń pinezkę
         </button>
       </div>
+      <NavigateLink lat={pin.latitude} lng={pin.longitude} />
     </div>
   );
 };
@@ -887,6 +893,13 @@ const PinCard = ({ pin, onRename, onDelete, onLocate, onHoverChange, order, colo
 
   const menuItems = [
     { key: 'locate', label: 'Pokaż na mapie', icon: 'fa-location-crosshairs', onSelect: () => onLocate(pin) },
+    {
+      key: 'navigate',
+      label: 'Nawiguj (Google Maps)',
+      icon: 'fa-diamond-turn-right',
+      onSelect: () =>
+        window.open(googleNavigateLink({ lat: pin.latitude, lng: pin.longitude }, getTravelMode()), '_blank', 'noopener'),
+    },
     { key: 'rename', label: 'Zmień nazwę', icon: 'fa-pen', onSelect: () => setEditing(true) },
     { key: 'delete', label: 'Usuń punkt', icon: 'fa-trash', danger: true, onSelect: () => onDelete(pin) },
   ];
@@ -971,7 +984,7 @@ const RouteLink = ({ leg, dimmed }) => (
 );
 
 //Koszyk dniia
-const Bucket = ({ bucket, pins, route, collapsed, hiddenOnMap, dragging ,onToggleCollapse, onToggleVisibility, hoveredPinId, onRename, onDeletePin, onLocatePin, onHoverPin }) => {
+const Bucket = ({ bucket, pins, route, exportDay, collapsed, hiddenOnMap, dragging, onToggleCollapse, onToggleVisibility, hoveredPinId, onRename, onDeletePin, onLocatePin, onHoverPin }) => {
   const { setNodeRef, isOver } = useDroppable({ id: bucket.key });
   const pinIds = pins.map((p) => p.id);
   const color = markerColorForDay(bucket.dayIndex);
@@ -1000,6 +1013,9 @@ const Bucket = ({ bucket, pins, route, collapsed, hiddenOnMap, dragging ,onToggl
           )}
         </div>
         <span className={styles.dayCount}>{pins.length}</span>
+        {exportDay?.points.length > 0 && (
+          <DayExportMenu day={exportDay} buttonClassName={styles.dayToggle} />
+        )}
         <button
           type="button"
           className={styles.dayToggle}
@@ -1140,6 +1156,21 @@ const PlannerPage = () => {
     );
     return groups;
   }, [pins, buckets]);
+
+  const exportTrip = useMemo(() => {
+    const toPoint = (pin) => ({ name: pin.name?.trim() || 'Bez nazwy', lat: pin.latitude, lng: pin.longitude });
+    return {
+      title: trip?.name ?? 'Wycieczka',
+      days: buckets
+        .filter((bucket) => bucket.dayIndex !== null)
+        .map((bucket) => ({
+          label: `Dzień ${bucket.dayIndex + 1} - ${bucket.label}`,
+          color: markerColorForDay(bucket.dayIndex),
+          points: (pinsByBucket[bucket.key] || []).map(toPoint),
+        })),
+      unassigned: (pinsByBucket[UNASSIGNED_KEY] || []).map(toPoint),
+    };
+  }, [trip?.name, buckets, pinsByBucket]);
 
   const routeDays = useMemo(
     () =>
@@ -1571,9 +1602,12 @@ const PlannerPage = () => {
         <Panel defaultSize={40} minSize={20} className={styles.daysPanel}>
           <div className={styles.daysToolbar}>
             <span className={styles.daysSummary}>{panelSummary}</span>
-            <button type="button" className={styles.daysToolbarBtn} onClick={toggleAllBuckets}>
-              {allCollapsed ? 'Rozwiń wszystkie' : 'Zwiń wszystkie'}
-            </button>
+            <div className={styles.daysToolbarActions}>
+              <TripExportMenu trip={exportTrip} buttonClassName={styles.daysToolbarBtn} />
+              <button type="button" className={styles.daysToolbarBtn} onClick={toggleAllBuckets}>
+                {allCollapsed ? 'Rozwiń wszystkie' : 'Zwiń wszystkie'}
+              </button>
+            </div>
           </div>
           <DndContext
             sensors={sensors}
@@ -1599,6 +1633,7 @@ const PlannerPage = () => {
                   onDeletePin={confirmAndDelete}
                   onLocatePin={locatePin}
                   onHoverPin={setHoveredPinId}
+                  exportDay={bucket.dayIndex !== null ? exportTrip.days[bucket.dayIndex] : null}
                 />
               ))}
             </div>

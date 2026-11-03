@@ -1,7 +1,10 @@
 import apiClient, { toApiError } from './apiClient';
 
 export const exploreService = {
-  getTrips: async ({ search, tags, minDays, maxDays, sort, skip = 0, take = 24 } = {}, { signal } = {}) => {
+  getTrips: async (
+    { search, tags, minDays, maxDays, sort, skip = 0, take = 24 } = {},
+    { signal } = {}
+  ) => {
     try {
       const res = await apiClient.get('/explore/trips', {
         params: {
@@ -36,6 +39,24 @@ export const exploreService = {
       return res.data;
     } catch (err) {
       throw toApiError(err, 'Nie udało się skopiować trasy.');
+    }
+  },
+
+  vote: async (id) => {
+    try {
+      const res = await apiClient.put(`/explore/trips/${id}/vote`);
+      return res.data;
+    } catch (err) {
+      throw toApiError(err, 'Nie udało się dodać płomienia.');
+    }
+  },
+
+  unvote: async (id) => {
+    try {
+      const res = await apiClient.delete(`/explore/trips/${id}/vote`);
+      return res.data;
+    } catch (err) {
+      throw toApiError(err, 'Nie udało się cofnąć płomienia.');
     }
   },
 };
