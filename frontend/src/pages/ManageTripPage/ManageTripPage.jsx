@@ -118,7 +118,7 @@ const ManageTripPage = () => {
         <div>
           <div className={styles.topbarName}>{trip.name}</div>
           <div className={styles.topbarMeta}>
-            {trip.startDate && `${formatDate(trip.startDate)} — ${formatDate(trip.endDate)}`}
+            {trip.startDate && `${formatDate(trip.startDate)} - ${formatDate(trip.endDate)}`}
             {' - '}{trip.participantCount + 1} uczestników
           </div>
         </div>

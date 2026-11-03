@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { tripService } from '../../services/tripService';
+import { tripService } from '../../services/TripService';
 import { swalConfirmDelete, toastSuccess, swalError } from '../../utils/swal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import styles from './TripsPage.module.scss';
@@ -41,14 +41,18 @@ const TripsPage = () => {
     fetchTrips();
   }, [fetchTrips]);
 
-  const handleDelete = async (tripId) => {
-    const result = await swalConfirmDelete('Usunąć wycieczkę?', 'Tej operacji nie można cofnąć.');
+  const handleDelete = async (trip) => {
+    const text = trip.publicationVisibility
+      ? 'Wycieczka jest opublikowana w Odkrywaj. Publikacja zostanie wycofana, a jej link przestanie działać. Tej operacji nie można cofnąć.'
+      : 'Tej operacji nie można cofnąć.';
+
+    const result = await swalConfirmDelete('Usunąć wycieczkę?', text);
     if (!result.isConfirmed) return;
 
-    setDeletingId(tripId);
+    setDeletingId(trip.id);
     try {
-      await tripService.delete(tripId);
-      setTrips((prev) => prev.filter((t) => t.id !== tripId));
+      await tripService.delete(trip.id);
+      setTrips((prev) => prev.filter((t) => t.id !== trip.id));
       await toastSuccess('Wycieczka została usunięta.');
     } catch (err) {
       await swalError('Błąd', err.message);
@@ -155,6 +159,12 @@ const TripsPage = () => {
                   <div className={styles.cardTop}>
                     <h2 className={styles.cardName}>{trip.name}</h2>
                     {trip.isOwner && <span className={styles.ownerBadge}>Organizator</span>}
+                    {trip.publicationVisibility && (
+                      <span className={styles.publishedBadge}>
+                        <FontAwesomeIcon icon={trip.publicationVisibility === 'public' ? 'globe' : 'link'} />
+                        {trip.publicationVisibility === 'public' ? 'Opublikowana' : 'Tylko przez link'}
+                      </span>
+                    )}
                     {upcoming && days !== null && days >= 0 && (
                       <span className={styles.statusBadgeUpcoming}>
                         {days === 0 ? 'Dzisiaj' : `Za ${days} ${days === 1 ? 'dzień' : 'dni'}`}
@@ -209,7 +219,7 @@ const TripsPage = () => {
                   {trip.isOwner && (
                     <button
                       className={`${styles.actionBtn} ${styles.danger}`}
-                      onClick={() => handleDelete(trip.id)}
+                      onClick={() => handleDelete(trip)}
                       disabled={deletingId === trip.id}>
                       <FontAwesomeIcon icon="trash" />
                       {deletingId === trip.id ? 'Usuwanie...' : 'Usuń'}

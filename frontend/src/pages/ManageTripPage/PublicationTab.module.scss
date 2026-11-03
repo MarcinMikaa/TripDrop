@@ -68,6 +68,15 @@
   }
 }
 
+.withdrawBtn {
+  color: #a23336;
+
+  &:hover:not(:disabled) {
+    border-color: #a23336;
+    background: rgba(162, 51, 54, 0.06);
+  }
+}
+
 .statusCard {
   display: flex;
   flex-direction: column;

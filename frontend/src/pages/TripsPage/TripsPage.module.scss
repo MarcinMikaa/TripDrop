@@ -327,3 +327,15 @@
   background: var(--border);
   margin-bottom: 1.75rem;
 }
+
+.publishedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 99px;
+  background: rgba(91, 143, 168, 0.12);
+  color: var(--steel);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
