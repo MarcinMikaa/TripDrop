@@ -505,13 +505,24 @@ const PresenceBar = ({ others }) => {
   );
 };
 
-const SearchAreaButton = ({ onSearch, onClear }) => {
+const showPoiStatus = (node, message) => {
+  if (node) node.textContent = message || '';
+};
+
+const SearchAreaButton = ({ onSearch, onClear, message }) => {
   const map = useMap();
   const onSearchRef = useRef(onSearch);
   const onClearRef = useRef(onClear);
+  const messageRef = useRef(message);
+  const statusRef = useRef(null);
 
   useEffect(() => { onSearchRef.current = onSearch; }, [onSearch]);
   useEffect(() => { onClearRef.current = onClear; }, [onClear]);
+
+  useEffect(() => {
+    messageRef.current = message;
+    showPoiStatus(statusRef.current, message);
+  }, [message]);
 
   useEffect(() => {
     const searchBtn = L.easyButton(
@@ -526,34 +537,18 @@ const SearchAreaButton = ({ onSearch, onClear }) => {
       'Wyczyść znalezione miejsca'
     ).addTo(map);
 
+    const status = L.DomUtil.create('div', styles.poiStatus, searchBtn.getContainer());
+    status.setAttribute('role', 'status');
+    L.DomEvent.disableClickPropagation(status);
+    statusRef.current = status;
+    showPoiStatus(status, messageRef.current);
+
     return () => {
+      statusRef.current = null;
       map.removeControl(searchBtn);
       map.removeControl(clearBtn);
     };
   }, [map]);
-
-  return null;
-};
-
-const PoiStatusControl = ({ message }) => {
-  const map = useMap();
-
-  useEffect(() => {
-    if (!message) return undefined;
-
-    const control = L.control({ position: 'bottomleft' });
-    control.onAdd = () => {
-      const div = L.DomUtil.create('div', 'leaflet-bar');
-      div.textContent = message;
-      L.DomEvent.disableClickPropagation(div);
-      return div;
-    };
-    control.addTo(map);
-
-    return () => {
-      map.removeControl(control);
-    };
-  }, [map, message]);
 
   return null;
 };
@@ -944,6 +939,11 @@ const PinCard = ({ pin, onRename, onDelete, onLocate, onHoverChange, order, colo
 };
 
 const ROUTE_ICON = 'fa-car';
+const LONG_DAY_SECONDS = 16 * 3600;
+const LONG_DAY_WARNING =
+  'Trasa tego dnia to ponad 16 godzin samej jazdy. Rozważ rozbicie jej na kilka dni.';
+const PARTIAL_ROUTE_WARNING =
+  'Nie można wyznaczyć całej trasy - część odcinków nie ma połączenia drogowego.';
 const ROUTE_DETAILS_MIN_HEIGHT = 140;
 const ROUTE_DETAILS_MAX_RATIO = 0.6;
 
@@ -968,6 +968,16 @@ const RouteLink = ({ leg, dimmed }) => (
     <i className={`fas ${ROUTE_ICON}`} aria-hidden="true" />
     <span>
       {formatDuration(leg.time)} - {formatDistance(leg.distance)}
+    </span>
+  </div>
+);
+
+const RouteError = ({ message }) => (
+  <div className={styles.routeError}>
+    <span className={styles.routeLinkTrack} />
+    <span className={styles.routeErrorBody}>
+      <i className="fas fa-triangle-exclamation" aria-hidden="true" />
+      <span>{message}</span>
     </span>
   </div>
 );
@@ -1042,6 +1052,12 @@ const RouteDetailsBox = ({ details, height, onResize, onClose }) => {
         </button>
       </div>
       <div className={styles.routeDetailsBody}>
+        {details.error && (
+          <div className={`${styles.routeErrorBody} ${styles.routeDetailsError}`}>
+            <i className="fas fa-triangle-exclamation" aria-hidden="true" />
+            <span>{details.error}</span>
+          </div>
+        )}
         {details.rows.map((row) => (
           <div key={row.term} className={styles.routeDetailsRow}>
             <span className={styles.routeDetailsTerm}>{row.term}</span>
@@ -1061,11 +1077,23 @@ const Bucket = ({ bucket, pins, route, collapsed, hiddenOnMap, dragging ,onToggl
   const isUnassigned = bucket.dayIndex === null;
 
   const legs = route?.legs?.length === pins.length - 1 ? route.legs : [];
+  const routeError = route?.error ?? null;
+  const tooLong = !routeError && route?.time > LONG_DAY_SECONDS;
+  const headerWarning = routeError
+    ? routeError.message
+    : route?.partial
+      ? PARTIAL_ROUTE_WARNING
+      : tooLong
+        ? LONG_DAY_WARNING
+        : null;
+  const errorIndex = routeError
+    ? Math.max(1, pins.findIndex((pin) => pin.id === routeError.pointId))
+    : -1;
 
   return (
     <div
       ref={setNodeRef}
-      className={`${styles.dayColumn} ${collapsed ? styles.dayColumnCollapsed : ''} ${isOver ? styles.dayColumnOver : ''}`}
+      className={`${styles.dayColumn} ${collapsed ? styles.dayColumnCollapsed : ''} ${tooLong ? styles.dayColumnAlert : ''} ${isOver ? styles.dayColumnOver : ''}`}
     >
       <div className={styles.dayHeader}>
         <span
@@ -1076,12 +1104,21 @@ const Bucket = ({ bucket, pins, route, collapsed, hiddenOnMap, dragging ,onToggl
         </span>
         <div className={styles.dayTitle}>
           <span className={styles.dayName}>{bucket.label}</span>
-          {legs.length > 0 && (
+          {legs.length > 0 && !route.partial && (
             <span className={styles.dayRouteSummary}>
               {formatDuration(route.time)} - {formatDistance(route.distance)}
             </span>
           )}
         </div>
+        {headerWarning && (
+          <span
+            className={styles.dayWarning}
+            title={headerWarning}
+            aria-label={headerWarning}
+          >
+            <i className="fas fa-circle-exclamation" aria-hidden="true" />
+          </span>
+        )}
         <span className={styles.dayCount}>{pins.length}</span>
         <button
           type="button"
@@ -1111,7 +1148,13 @@ const Bucket = ({ bucket, pins, route, collapsed, hiddenOnMap, dragging ,onToggl
             ) : (
                pins.map((pin, i) => (
                 <Fragment key={pin.id}>
-                  {legs[i - 1] && <RouteLink leg={legs[i - 1]} dimmed={dragging} />}
+                  {legs[i - 1] &&
+                    (legs[i - 1].error ? (
+                      <RouteError message={legs[i - 1].error} />
+                    ) : (
+                      <RouteLink leg={legs[i - 1]} dimmed={dragging} />
+                    ))}
+                  {errorIndex === i && <RouteError message={routeError.message} />}
                   <PinCard
                     pin={pin}
                     onRename={onRename}
@@ -1374,7 +1417,6 @@ const PlannerPage = () => {
     setContextMenuPos({ lat, lng });
   };
 
-  /*
   const handleSearchArea = async (bounds, zoom) => {
     if (zoom < POI_MIN_ZOOM) {
       setPoiMessage('Przybliż mapę, żeby wyszukać miejsca w okolicy.');
@@ -1410,7 +1452,7 @@ const PlannerPage = () => {
     setPois([]);
     setPoiMessage('');
   };
- */
+
   const handleSearchResult = (lat, lng, name) => {
     setContextMenuPos({ lat, lng, name });
   };
@@ -1586,10 +1628,11 @@ const PlannerPage = () => {
               onRoutesComputed={handleRoutesComputed}
               onDetailsSelect={setRouteDetails}
             />
-            {/*
-            <SearchAreaButton onSearch={handleSearchArea} onClear={handleClearPois} />
-            */}
-            <PoiStatusControl message={poiMessage} />
+            <SearchAreaButton
+              onSearch={handleSearchArea}
+              onClear={handleClearPois}
+              message={poiMessage}
+            />
   
             {pois.map((poi) => (
               <Marker

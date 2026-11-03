@@ -1,4 +1,9 @@
+const TRACESTRACK_KEY = import.meta.env.VITE_TRACESTRACK_KEY;
+
 const OVERPASS_ENDPOINTS = [
+  ...(TRACESTRACK_KEY
+    ? [`https://api.tracestrack.com/overpass/${encodeURIComponent(TRACESTRACK_KEY)}/interpreter`]
+    : []),
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
 ];
