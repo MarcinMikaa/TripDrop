@@ -10,6 +10,8 @@
         int PointCount,
         int? TotalDistanceM,
         int CopyCount,
+        int VoteCount,
+        bool HasVoted,
         DateTime PublishedAt,
         DateTime? UpdatedAt,
         IReadOnlyList<double[]> Preview);

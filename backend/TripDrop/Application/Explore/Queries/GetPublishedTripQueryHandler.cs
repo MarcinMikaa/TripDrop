@@ -26,6 +26,8 @@ namespace TripDrop.Application.Explore.Queries
 
             var content = PublicationContentSerializer.Deserialize(publication.Content);
             var isMine = request.CurrentUserId == publication.AuthorId;
+            var hasVoted = request.CurrentUserId is Guid userId
+                && await _repository.HasVotedAsync(publication.Id, userId, cancellationToken);
 
             return new PublishedTripDetailsDto(
                 publication.Id,
@@ -40,6 +42,8 @@ namespace TripDrop.Application.Explore.Queries
                 publication.TotalDistanceM,
                 publication.TotalDurationS,
                 publication.CopyCount,
+                publication.VoteCount,
+                hasVoted,
                 publication.PublishedAt,
                 publication.UpdatedAt,
                 isMine,

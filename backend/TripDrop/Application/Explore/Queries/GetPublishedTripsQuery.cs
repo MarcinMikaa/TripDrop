@@ -10,5 +10,6 @@ namespace TripDrop.Application.Explore.Queries
         int? MaxDays,
         string? Sort,
         int Skip,
-        int Take) : IRequest<PublishedTripPageDto>;
+        int Take,
+        Guid? CurrentUserId) : IRequest<PublishedTripPageDto>;
 }

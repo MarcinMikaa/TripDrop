@@ -41,19 +41,29 @@ namespace TripDrop.Application.Explore.Queries
             var minDays = request.MinDays is > 0 ? request.MinDays : null;
             var maxDays = request.MaxDays is > 0 ? request.MaxDays : null;
 
-            var sort = string.Equals(request.Sort, "popular", StringComparison.OrdinalIgnoreCase)
-                ? PublishedTripSort.MostCopied
-                : PublishedTripSort.Newest;
+            var sort = request.Sort?.Trim().ToLowerInvariant() switch
+            {
+                "hot" => PublishedTripSort.MostVoted,
+                "popular" => PublishedTripSort.MostCopied,
+                _ => PublishedTripSort.Newest,
+            };
 
             var rows = await _repository.SearchPublicAsync(
                 new PublishedTripSearchCriteria(searchText, tags, minDays, maxDays, sort, skip, take + 1),
                 cancellationToken);
 
-            var items = rows.Take(take).Select(ToListItem).ToList();
+            var pageRows = rows.Take(take).ToList();
+
+            var votedIds = request.CurrentUserId is Guid userId
+                ? await _repository.GetVotedPublicationIdsAsync(
+                    userId, pageRows.Select(p => p.Id).ToList(), cancellationToken)
+                : new HashSet<Guid>();
+
+            var items = pageRows.Select(p => ToListItem(p, votedIds.Contains(p.Id))).ToList();
             return new PublishedTripPageDto(items, rows.Count > take);
         }
 
-        private static PublishedTripListItemDto ToListItem(PublishedTrip publication)
+        private static PublishedTripListItemDto ToListItem(PublishedTrip publication, bool hasVoted)
         {
             var content = PublicationContentSerializer.Deserialize(publication.Content);
 
@@ -76,6 +86,8 @@ namespace TripDrop.Application.Explore.Queries
                 publication.PointCount,
                 publication.TotalDistanceM,
                 publication.CopyCount,
+                publication.VoteCount,
+                hasVoted,
                 publication.PublishedAt,
                 publication.UpdatedAt,
                 preview);

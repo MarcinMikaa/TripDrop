@@ -9,6 +9,7 @@ namespace TripDrop.Domain.Enums
     public enum PublishedTripSort
     {
         Newest,
-        MostCopied
+        MostCopied,
+        MostVoted
     }
 }

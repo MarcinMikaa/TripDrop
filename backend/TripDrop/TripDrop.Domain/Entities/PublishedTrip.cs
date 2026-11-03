@@ -29,6 +29,7 @@ namespace TripDrop.Domain.Entities
         public string Content { get; private set; } = string.Empty;
 
         public int CopyCount { get; private set; }
+        public int VoteCount { get; private set; }
         public DateTime PublishedAt { get; private set; }
         public DateTime? UpdatedAt { get; private set; }
 
@@ -58,6 +59,13 @@ namespace TripDrop.Domain.Entities
         {
             if (Status == PublicationStatus.Withdrawn) return;
             Status = PublicationStatus.Withdrawn;
+            UpdatedAt = DateTime.UtcNow;
+        }
+
+        public void DetachFromDeletedSource()
+        {
+            Withdraw();
+            SourceTripId = null;
             UpdatedAt = DateTime.UtcNow;
         }
 
