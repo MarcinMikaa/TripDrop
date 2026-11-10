@@ -165,6 +165,12 @@ const TripsPage = () => {
                         {trip.publicationVisibility === 'public' ? 'Opublikowana' : 'Tylko przez link'}
                       </span>
                     )}
+                    {trip.planLockedAt && (
+                      <span className={`${styles.publishedBadge} ${styles.lockedBadge}`}>
+                        <FontAwesomeIcon icon="lock" />
+                        Plan zamknięty
+                      </span>
+                    )}
                     {upcoming && days !== null && days >= 0 && (
                       <span className={styles.statusBadgeUpcoming}>
                         {days === 0 ? 'Dzisiaj' : `Za ${days} ${days === 1 ? 'dzień' : 'dni'}`}

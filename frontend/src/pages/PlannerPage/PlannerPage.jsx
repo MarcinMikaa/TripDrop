@@ -43,12 +43,13 @@ import { useTripPointsRealtime } from '../../hooks/useTripPointsRealtime';
 import useAuth from '../../hooks/useAuth';
 import { useTripPresence } from '../../hooks/useTripPresence';
 import { colorForUser } from '../../utils/useColor';
-import { swalConfirmDelete } from '../../utils/swal';
+import { swalConfirmDelete, toastSuccess, toastError } from '../../utils/swal';
 import DayExportMenu from '../../components/TripExport/DayExportMenu';
 import TripExportMenu from '../../components/TripExport/TripExportMenu';
 import NavigateLink from '../../components/TripExport/NavigateLink';
 import { googleNavigateLink } from '../../utils/tripExport';
 import { getTravelMode } from '../../hooks/useTravelMode';
+import PlanLockBanner from '../../components/PlanLockBanner/PlanLockBanner';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -620,7 +621,7 @@ const PoiPopupContent = ({ poi }) => {
   );
 };
 
-const MarkerPopupContent = ({ pin, onAddPin, onEdit, onDelete }) => {
+const MarkerPopupContent = ({ pin, readOnly, onAddPin, onEdit, onDelete }) => {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(pin.name || '');
 
@@ -640,7 +641,7 @@ const MarkerPopupContent = ({ pin, onAddPin, onEdit, onDelete }) => {
 
   return (
     <div className={styles.popup}>
-      {editing ? (
+      {editing && !readOnly ? (
         <input
           type="text"
           autoFocus
@@ -661,7 +662,7 @@ const MarkerPopupContent = ({ pin, onAddPin, onEdit, onDelete }) => {
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation();
-            setEditing(true);
+            if (!readOnly) setEditing(true);
           }}
         >
           {pin.name?.trim() || <em>Bez nazwy</em>}
@@ -673,14 +674,16 @@ const MarkerPopupContent = ({ pin, onAddPin, onEdit, onDelete }) => {
         <dt>Autor:</dt>
         <dd>{pin.userName || 'nieznany'}</dd>
       </dl>
-      <div className={styles.popupActions}>
-        <button type="button" onClick={() => onAddPin(pin.latitude, pin.longitude)}>
-          Dodaj pinezkę
-        </button>
-        <button type="button" onClick={() => onDelete(pin.id)}>
-          Usuń pinezkę
-        </button>
-      </div>
+      {!readOnly && (
+        <div className={styles.popupActions}>
+          <button type="button" onClick={() => onAddPin(pin.latitude, pin.longitude)}>
+            Dodaj pinezkę
+          </button>
+          <button type="button" onClick={() => onDelete(pin.id)}>
+            Usuń pinezkę
+          </button>
+        </div>
+      )}
       <NavigateLink lat={pin.latitude} lng={pin.longitude} />
     </div>
   );
@@ -856,13 +859,13 @@ const PinCardPreview = ({ pin, order, color }) => (
 );
 
 //Pojedyncza pinezka w koszyku
-const PinCard = ({ pin, onRename, onDelete, onLocate, onHoverChange, order, color, highlighted }) => {
+const PinCard = ({ pin, readOnly, onRename, onDelete, onLocate, onHoverChange, order, color, highlighted }) => {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(pin.name || '');
 
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: pin.id,
-    disabled: editing,
+    disabled: editing || readOnly,
   });
 
   const style = {
@@ -900,36 +903,42 @@ const PinCard = ({ pin, onRename, onDelete, onLocate, onHoverChange, order, colo
       onSelect: () =>
         window.open(googleNavigateLink({ lat: pin.latitude, lng: pin.longitude }, getTravelMode()), '_blank', 'noopener'),
     },
-    { key: 'rename', label: 'Zmień nazwę', icon: 'fa-pen', onSelect: () => setEditing(true) },
-    { key: 'delete', label: 'Usuń punkt', icon: 'fa-trash', danger: true, onSelect: () => onDelete(pin) },
+    ...(readOnly
+      ? []
+      : [
+          { key: 'rename', label: 'Zmień nazwę', icon: 'fa-pen', onSelect: () => setEditing(true) },
+          { key: 'delete', label: 'Usuń punkt', icon: 'fa-trash', danger: true, onSelect: () => onDelete(pin) },
+        ]),
   ];
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`${styles.pinCard} ${isDragging ? styles.pinCardDragging : ''} ${highlighted ? styles.pinCardHighlighted : ''}`}
+      className={`${styles.pinCard} ${isDragging ? styles.pinCardDragging : ''} ${highlighted ? styles.pinCardHighlighted : ''} ${readOnly ? styles.pinCardReadOnly : ''}`}
       onClick={handleCardClick}
       onMouseEnter={() => onHoverChange(pin.id)}
       onMouseLeave={() => onHoverChange(null)}
     >
-      <button
-        ref={setActivatorNodeRef}
-        type="button"
-        data-stop-card-click
-        className={styles.pinDragHandle}
-        aria-label="Przeciągnij punkt"
-        {...attributes}
-        {...listeners}
-      >
-        <i className="fas fa-grip-vertical" aria-hidden="true" />
-      </button>
+      {!readOnly && (
+        <button
+          ref={setActivatorNodeRef}
+          type="button"
+          data-stop-card-click
+          className={styles.pinDragHandle}
+          aria-label="Przeciągnij punkt"
+          {...attributes}
+          {...listeners}
+        >
+          <i className="fas fa-grip-vertical" aria-hidden="true" />
+        </button>
+      )}
 
       <span className={styles.pinOrder} style={{ color, borderColor: color }}>
         {order}
       </span>
 
-      {editing ? (
+      {editing && !readOnly ? (
         <input
           autoFocus
           className={styles.pinNameInput}
@@ -945,7 +954,7 @@ const PinCard = ({ pin, onRename, onDelete, onLocate, onHoverChange, order, colo
       ) : (
         <span
           className={styles.pinName}
-          onDoubleClick={(e) => { e.stopPropagation(); setEditing(true); }}
+          onDoubleClick={(e) => { e.stopPropagation(); if (!readOnly) setEditing(true); }}
         >
           {pin.name?.trim() || <em className={styles.pinNamePlaceholder}>Bez nazwy</em>}
         </span>
@@ -984,8 +993,8 @@ const RouteLink = ({ leg, dimmed }) => (
 );
 
 //Koszyk dniia
-const Bucket = ({ bucket, pins, route, exportDay, collapsed, hiddenOnMap, dragging, onToggleCollapse, onToggleVisibility, hoveredPinId, onRename, onDeletePin, onLocatePin, onHoverPin }) => {
-  const { setNodeRef, isOver } = useDroppable({ id: bucket.key });
+const Bucket = ({ bucket, pins, route, exportDay, collapsed, hiddenOnMap, dragging, onToggleCollapse, onToggleVisibility, hoveredPinId, readOnly, onRename, onDeletePin, onLocatePin, onHoverPin }) => {
+  const { setNodeRef, isOver } = useDroppable({ id: bucket.key, disabled: readOnly });
   const pinIds = pins.map((p) => p.id);
   const color = markerColorForDay(bucket.dayIndex);
   const isUnassigned = bucket.dayIndex === null;
@@ -1054,6 +1063,7 @@ const Bucket = ({ bucket, pins, route, exportDay, collapsed, hiddenOnMap, draggi
                     order={i + 1}
                     color={color}
                     highlighted={pin.id === hoveredPinId}
+                    readOnly={readOnly}
                   />
                 </Fragment>
               ))
@@ -1089,6 +1099,7 @@ const PlannerPage = () => {
   const [collapsedKeys, setCollapsedKeys] = useState(() => new Set());
   const [routeData, setRouteData] = useState({});
   const [hiddenDayKeys, setHiddenDayKeys] = useState(() => new Set());
+  const [isLockBusy, setIsLockBusy] = useState(false);
 
   useEffect(() => () => {
     poiRequestRef.current?.abort();
@@ -1133,7 +1144,20 @@ const PlannerPage = () => {
     }
   }, [tripId]);
 
-  useTripPointsRealtime(tripId, refetchPins);
+  const refetchTrip = useCallback(async () => {
+    try {
+      const data = await tripService.getById(tripId);
+      setTrip(data);
+      return data;
+    } catch (err) {
+      setError(err.message);
+      return null;
+    }
+  }, [tripId]);
+
+  useTripPointsRealtime(tripId, refetchPins, refetchTrip);
+
+  const isPlanLocked = Boolean(trip?.planLockedAt);
 
   const { user } = useAuth();
   const { present, others, updateCursor, clearCursor } = useTripPresence(tripId, user);
@@ -1311,6 +1335,7 @@ const PlannerPage = () => {
 
   //Pusty klik
   const handleEmptyMapClick = ({ lat, lng }) => {
+    if (isPlanLocked) return;
     setContextMenuPos({ lat, lng });
   };
 
@@ -1352,7 +1377,31 @@ const PlannerPage = () => {
   };
  */
   const handleSearchResult = (lat, lng, name) => {
+    if (isPlanLocked) return;
     setContextMenuPos({ lat, lng, name });
+  };
+
+  const handlePointError = async (err) => {
+    const fresh = await refetchTrip();
+    if (fresh?.planLockedAt) {
+      toastError('Plan został zamknięty. Twoja zmiana nie została zapisana.');
+      refetchPins();
+      return;
+    }
+    setError(err.message);
+  };
+
+  const handleTogglePlanLock = async () => {
+    setIsLockBusy(true);
+    try {
+      const lock = isPlanLocked ? await tripService.unlockPlan(tripId) : await tripService.lockPlan(tripId);
+      setTrip((prev) => ({ ...prev, planLockedAt: lock.planLockedAt }));
+      toastSuccess(lock.isPlanLocked ? 'Plan zamknięty.' : 'Planowanie wznowione.');
+    } catch (err) {
+      toastError(err.message);
+    } finally {
+      setIsLockBusy(false);
+    }
   };
 
   const handleCreatePin = async (lat, lng, name = '') => {
@@ -1372,7 +1421,7 @@ const PlannerPage = () => {
         return next;
       });
     } catch (err) {
-      setError(err.message);
+      handlePointError(err);
     }
   }; 
   const handleRename = async (pointId, newName) => {
@@ -1391,7 +1440,7 @@ const PlannerPage = () => {
       });
     } catch (err) {
       setPins(prev);
-      setError(err.message);
+      handlePointError(err);
     }
   };
 
@@ -1402,7 +1451,7 @@ const PlannerPage = () => {
       await tripPointService.delete(tripId, pointId);
     } catch (err) {
       setPins(prev);
-      setError(err.message);
+      handlePointError(err);
     }
   };
 
@@ -1493,7 +1542,7 @@ const PlannerPage = () => {
       );
     } catch (err) {
       setPins(previousPins);
-      setError(err.message);
+      handlePointError(err);
     }
   };
 
@@ -1566,6 +1615,7 @@ const PlannerPage = () => {
                 <Popup>
                   <MarkerPopupContent
                     pin={pin}
+                    readOnly={isPlanLocked}
                     onAddPin={handleCreatePin}
                     onEdit={handleRename}
                     onDelete={() => confirmAndDelete(pin)}
@@ -1574,7 +1624,7 @@ const PlannerPage = () => {
               </Marker>
             ))}
 
-            {contextMenuPos && (
+            {contextMenuPos && !isPlanLocked && (
               <EmptyContextMenu
                 position={contextMenuPos}
                 onAddPin={handleCreatePin}
@@ -1600,9 +1650,29 @@ const PlannerPage = () => {
 
         {/* Boxy */}
         <Panel defaultSize={40} minSize={20} className={styles.daysPanel}>
+          {isPlanLocked && (
+            <PlanLockBanner
+              lockedAt={trip.planLockedAt}
+              ownerName={trip.ownerUsername}
+              isOwner={trip.isOwner}
+              onUnlock={handleTogglePlanLock}
+              isBusy={isLockBusy}
+            />
+          )}
           <div className={styles.daysToolbar}>
             <span className={styles.daysSummary}>{panelSummary}</span>
             <div className={styles.daysToolbarActions}>
+              {trip.isOwner && !isPlanLocked && (
+                <button
+                  type="button"
+                  className={`${styles.daysToolbarBtn} ${styles.lockPlanBtn}`}
+                  onClick={handleTogglePlanLock}
+                  disabled={isLockBusy}
+                >
+                  <i className="fas fa-lock" aria-hidden="true" />
+                  {isLockBusy ? 'Zamykanie...' : 'Zakończ planowanie'}
+                </button>
+              )}
               <TripExportMenu trip={exportTrip} buttonClassName={styles.daysToolbarBtn} />
               <button type="button" className={styles.daysToolbarBtn} onClick={toggleAllBuckets}>
                 {allCollapsed ? 'Rozwiń wszystkie' : 'Zwiń wszystkie'}
@@ -1634,6 +1704,7 @@ const PlannerPage = () => {
                   onLocatePin={locatePin}
                   onHoverPin={setHoveredPinId}
                   exportDay={bucket.dayIndex !== null ? exportTrip.days[bucket.dayIndex] : null}
+                  readOnly={isPlanLocked}
                 />
               ))}
             </div>

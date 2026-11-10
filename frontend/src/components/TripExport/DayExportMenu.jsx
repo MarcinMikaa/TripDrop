@@ -9,7 +9,7 @@ import styles from './TripExport.module.scss';
 
 const isTouchDevice = () => window.matchMedia('(pointer: coarse)').matches;
 
-const rangeSuffix = (link, total) => (total > 1 ? ` · punkty ${link.from}-${link.to}` : '');
+const rangeSuffix = (link, total) => (total > 1 ? ` - punkty ${link.from}-${link.to}` : '');
 
 export const TravelModeSwitch = ({ mode, onChange }) => (
   <div className={styles.modes} role="radiogroup" aria-label="Środek transportu">

@@ -601,3 +601,13 @@
   flex-shrink: 0;
   gap: 6px;
 }
+
+.pinCardReadOnly {
+  padding-left: 12px;
+}
+
+.lockPlanBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

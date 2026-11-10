@@ -243,7 +243,7 @@ const PublicationTab = ({ trip, onGoToInfo }) => {
   };
 
   if (status === 'loading') {
-    return <p className={styles.muted}>Ładowanie…</p>;
+    return <p className={styles.muted}>Ładowanie...</p>;
   }
 
   if (status === 'error') {
@@ -304,8 +304,8 @@ const PublicationTab = ({ trip, onGoToInfo }) => {
           </div>
           <h3 className={styles.statusTitle}>{publication.title}</h3>
           <p className={styles.muted}>
-            {pluralize(publication.dayCount, DAY_FORMS)} · {pluralize(publication.pointCount, PLACE_FORMS)}
-            {publication.region ? ` · ${publication.region}` : ''}
+            {pluralize(publication.dayCount, DAY_FORMS)} - {pluralize(publication.pointCount, PLACE_FORMS)}
+            {publication.region ? ` - ${publication.region}` : ''}
           </p>
           <p className={styles.muted}>
             Opublikowano {dateFormatter.format(new Date(publication.publishedAt))}
@@ -337,7 +337,7 @@ const PublicationTab = ({ trip, onGoToInfo }) => {
                   className={`${styles.secondaryBtn} ${styles.withdrawBtn}`}
                   onClick={handleWithdraw}
                   disabled={isWithdrawing}>
-                  {isWithdrawing ? 'Wycofywanie…' : 'Wycofaj publikację'}
+                  {isWithdrawing ? 'Wycofywanie...' : 'Wycofaj publikację'}
                 </button>
               </>
             )}
@@ -531,8 +531,8 @@ const PublicationTab = ({ trip, onGoToInfo }) => {
         <div className={styles.preview}>
           <h3 className={styles.statusTitle}>{form.title.trim()}</h3>
           <p className={styles.muted}>
-            {pluralize(days.length, DAY_FORMS)} · {pluralize(selectedPublishable.length, PLACE_FORMS)}
-            {form.region.trim() ? ` · ${form.region.trim()}` : ''}
+            {pluralize(days.length, DAY_FORMS)} - {pluralize(selectedPublishable.length, PLACE_FORMS)}
+            {form.region.trim() ? ` - ${form.region.trim()}` : ''}
           </p>
 
           {form.tags.length > 0 && (
@@ -589,7 +589,7 @@ const PublicationTab = ({ trip, onGoToInfo }) => {
             disabled={!canProceed || isSaving}
             onClick={handlePublish}>
             {isSaving
-              ? 'Publikowanie…'
+              ? 'Publikowanie...'
               : !publication
                 ? 'Opublikuj'
                 : isWithdrawn

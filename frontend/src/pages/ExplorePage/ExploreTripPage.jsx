@@ -99,7 +99,7 @@ const RouteLink = ({ leg }) => (
     <span className={plannerStyles.routeLinkTrack} />
     <i className={`fas ${ROUTE_ICON}`} aria-hidden="true" />
     <span>
-      {formatDuration(leg.time)} · {formatDistance(leg.distance)}
+      {formatDuration(leg.time)} - {formatDistance(leg.distance)}
     </span>
   </div>
 );
@@ -137,7 +137,7 @@ const ReadOnlyDay = ({
           <span className={plannerStyles.dayName}>Dzień {day.dayNumber}</span>
           {legs.length > 0 && (
             <span className={plannerStyles.dayRouteSummary}>
-              {formatDuration(route.time)} · {formatDistance(route.distance)}
+              {formatDuration(route.time)} - {formatDistance(route.distance)}
             </span>
           )}
         </button>
@@ -250,7 +250,7 @@ const ExploreTripPage = () => {
   useEffect(() => {
     if (!tripTitle) return undefined;
     const previous = document.title;
-    document.title = `${tripTitle} · TripDrop`;
+    document.title = `${tripTitle} - TripDrop`;
     return () => {
       document.title = previous;
     };
@@ -474,7 +474,7 @@ const ExploreTripPage = () => {
   };
 
   if (isLoading) {
-    return <div className={styles.loading}>Ładowanie trasy…</div>;
+    return <div className={styles.loading}>Ładowanie trasy...</div>;
   }
 
   if (result.error) {
@@ -594,7 +594,7 @@ const ExploreTripPage = () => {
           <span className={styles.badge}>Tylko przez link</span>
         )}
 
-        <p className={styles.byline}>{[`@${trip.author}`, trip.region].filter(Boolean).join(' · ')}</p>
+        <p className={styles.byline}>{[`@${trip.author}`, trip.region].filter(Boolean).join(' - ')}</p>
 
         {trip.tags.length > 0 && (
           <div className={styles.tags}>

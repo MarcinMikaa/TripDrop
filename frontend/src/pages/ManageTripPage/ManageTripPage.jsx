@@ -15,6 +15,20 @@ const NAV_ITEMS = [
   { key: 'settings', icon: 'gear', label: 'Ustawienia' },
 ];
 
+const lockedAtFormat = new Intl.DateTimeFormat('pl-PL', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
+const formatLockedAt = (value) => {
+  if (!value) return '';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '' : lockedAtFormat.format(date);
+};
+
 const ManageTripPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -24,6 +38,7 @@ const ManageTripPage = () => {
   const [friends, setFriends] = useState([]);
   const [form, setForm] = useState({ name: '', description: '', startDate: '', endDate: '' });
   const [isSaving, setIsSaving] = useState(false);
+  const [isLockBusy, setIsLockBusy] = useState(false);
 
   useEffect(() => {
     tripService
@@ -44,17 +59,21 @@ const ManageTripPage = () => {
       .catch(() => {});
   }, [id]);
 
+  const isPlanLocked = Boolean(trip?.planLockedAt);
+
   const handleChange = (e) => setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
       await tripService.update(id, {
-        name: form.name.trim(), description: form.description.trim() || null,
-        startDate: form.startDate || null, endDate: form.endDate || null,
+        name: form.name.trim(),
+        description: form.description.trim() || null,
+        startDate: form.startDate || null,
+        endDate: form.endDate || null,
       });
 
-      setTrip(prev => ({
+      setTrip((prev) => ({
         ...prev,
         name: form.name.trim(),
         description: form.description.trim() || null,
@@ -66,6 +85,19 @@ const ManageTripPage = () => {
       await swalError('Błąd', err.message);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleTogglePlanLock = async () => {
+    setIsLockBusy(true);
+    try {
+      const lock = isPlanLocked ? await tripService.unlockPlan(id) : await tripService.lockPlan(id);
+      setTrip((prev) => ({ ...prev, planLockedAt: lock.planLockedAt }));
+      toastSuccess(lock.isPlanLocked ? 'Plan zamknięty.' : 'Planowanie wznowione.');
+    } catch (err) {
+      swalError('Błąd', err.message);
+    } finally {
+      setIsLockBusy(false);
     }
   };
 
@@ -102,8 +134,10 @@ const ManageTripPage = () => {
   if (!trip) return null;
 
   const availableFriends = friends.filter((f) => !trip.participants.some((p) => p.id === f.id));
+  const ownerName = trip.isOwner ? 'Ty' : trip.ownerUsername;
 
-  const formatDate = (d) => d ? new Date(d).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
+  const formatDate = (d) =>
+    d ? new Date(d).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
 
   return (
     <div className={styles.wrapper}>
@@ -118,8 +152,9 @@ const ManageTripPage = () => {
         <div>
           <div className={styles.topbarName}>{trip.name}</div>
           <div className={styles.topbarMeta}>
-            {trip.startDate && `${formatDate(trip.startDate)} - ${formatDate(trip.endDate)}`}
-            {' - '}{trip.participantCount + 1} uczestników
+            {trip.startDate && `${formatDate(trip.startDate)} — ${formatDate(trip.endDate)}`}
+            {' - '}
+            {trip.participantCount + 1} uczestników
           </div>
         </div>
       </div>
@@ -152,13 +187,31 @@ const ManageTripPage = () => {
               <div className={styles.dates}>
                 <div className={styles.field}>
                   <label>Data rozpoczęcia</label>
-                  <input type="date" name="startDate" value={form.startDate} onChange={handleChange} />
+                  <input
+                    type="date"
+                    name="startDate"
+                    value={form.startDate}
+                    onChange={handleChange}
+                    disabled={isPlanLocked}
+                  />
                 </div>
                 <div className={styles.field}>
                   <label>Data zakończenia</label>
-                  <input type="date" name="endDate" value={form.endDate} onChange={handleChange} />
+                  <input
+                    type="date"
+                    name="endDate"
+                    value={form.endDate}
+                    onChange={handleChange}
+                    disabled={isPlanLocked}
+                  />
                 </div>
               </div>
+              {isPlanLocked && (
+                <p className={styles.fieldHint}>
+                  <FontAwesomeIcon icon="lock" />
+                  Daty są zablokowane, bo plan jest zamknięty. Wznowisz go w zakładce Ustawienia.
+                </p>
+              )}
               <button className={styles.saveBtn} onClick={handleSave} disabled={isSaving}>
                 {isSaving ? 'Zapisywanie...' : 'Zapisz zmiany'}
               </button>
@@ -170,8 +223,8 @@ const ManageTripPage = () => {
               <p className={styles.contentTitle}>Uczestnicy ({trip.participantCount + 1})</p>
 
               <div className={styles.partRow}>
-                <div className={styles.partAvatar}>T</div>
-                <span className={styles.partName}>Ty</span>
+                <div className={styles.partAvatar}>{(trip.ownerUsername || '?')[0].toUpperCase()}</div>
+                <span className={styles.partName}>{ownerName}</span>
                 <span className={styles.ownerTag}>Organizator</span>
               </div>
 
@@ -206,6 +259,34 @@ const ManageTripPage = () => {
 
           {activeTab === 'share' && trip.isOwner && (
             <PublicationTab trip={trip} onGoToInfo={() => setActiveTab('info')} />
+          )}
+
+          {activeTab === 'settings' && (
+            <>
+              <p className={styles.contentTitle}>Ustawienia</p>
+              <section className={`${styles.lockCard} ${isPlanLocked ? styles.lockCardLocked : ''}`}>
+                <div className={styles.lockInfo}>
+                  <span className={styles.lockTitle}>
+                    <FontAwesomeIcon icon={isPlanLocked ? 'lock' : 'lock-open'} />
+                    {isPlanLocked ? 'Plan zamknięty' : 'Planowanie trwa'}
+                  </span>
+                  <p className={styles.lockText}>
+                    {isPlanLocked
+                      ? `Zamknięty ${formatLockedAt(trip.planLockedAt)}. Punkty i daty są tylko do odczytu dla wszystkich uczestników.`
+                      : 'Gdy plan jest gotowy, zamknij go. Nikt nie zmieni już punktów ani dat, a eksport dalej działa. Wznowić możesz w każdej chwili.'}
+                  </p>
+                </div>
+                {trip.isOwner && (
+                  <button
+                    className={isPlanLocked ? styles.unlockBtn : styles.lockBtn}
+                    onClick={handleTogglePlanLock}
+                    disabled={isLockBusy}>
+                    <FontAwesomeIcon icon={isPlanLocked ? 'lock-open' : 'lock'} />
+                    {isLockBusy ? 'Zapisywanie...' : isPlanLocked ? 'Wznów planowanie' : 'Zakończ planowanie'}
+                  </button>
+                )}
+              </section>
+            </>
           )}
         </div>
       </div>

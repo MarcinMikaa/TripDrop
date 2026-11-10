@@ -339,3 +339,9 @@
   font-size: 0.72rem;
   font-weight: 600;
 }
+
+.lockedBadge {
+  background: var(--obsidian);
+  color: var(--linen);
+  border-color: var(--obsidian);
+}

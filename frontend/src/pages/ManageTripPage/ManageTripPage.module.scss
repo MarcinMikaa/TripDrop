@@ -256,3 +256,99 @@
   color: var(--text-muted);
   margin-bottom: 0.6rem;
 }
+
+.fieldHint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -4px 0 16px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.lockCard {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.lockCardLocked {
+  background: #efe5d6;
+  border-color: #e0cfb4;
+}
+
+.lockInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.lockTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.lockText {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.lockBtn,
+.unlockBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 18px;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: progress;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--steel);
+    outline-offset: 2px;
+  }
+}
+
+.lockBtn {
+  border: none;
+  background: var(--obsidian);
+  color: var(--linen);
+
+  &:hover:not(:disabled) {
+    background: #2a2622;
+  }
+}
+
+.unlockBtn {
+  border: 1.5px solid var(--obsidian);
+  background: transparent;
+  color: var(--obsidian);
+
+  &:hover:not(:disabled) {
+    background: var(--obsidian);
+    color: var(--linen);
+  }
+}
