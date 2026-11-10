@@ -555,7 +555,8 @@ const SearchAreaButton = ({ onSearch, onClear, message }) => {
   return null;
 };
 
-const PoiPopupContent = ({ poi }) => {
+const PoiPopupContent = ({ poi, onAddPin }) => {
+  const map = useMap();
   const category = POI_CATEGORIES[poi.category];
   const location = [poi.address, poi.city].filter(Boolean).join(', ');
 
@@ -608,6 +609,17 @@ const PoiPopupContent = ({ poi }) => {
           </>
         ) : null}
       </dl>
+      <div className={styles.popupActions}>
+        <button
+          type="button"
+          onClick={() => {
+            map.closePopup();
+            onAddPin(poi.lat, poi.lng, poi.name || '');
+          }}
+        >
+          Dodaj pinezkę
+        </button>
+      </div>
     </div>
   );
 };
@@ -616,10 +628,20 @@ const MarkerPopupContent = ({ pin, tripId, onAddPin, onEdit, onDelete }) => {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(pin.name || '');
   const [nearby, setNearby] = useState([]);
+  const rootRef = useRef(null);
+  const map = useMap();
 
   useEffect(() => {
     if (!editing) setValue(pin.name || '');
   }, [pin.name, editing]);
+
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    map.eachLayer((layer) => {
+      if (layer instanceof L.Popup && layer.getElement()?.contains(root)) layer.update();
+    });
+  }, [map, nearby, editing]);
 
   useEffect(() => {
     let cancelled = false;
@@ -654,7 +676,7 @@ const MarkerPopupContent = ({ pin, tripId, onAddPin, onEdit, onDelete }) => {
   };
 
   return (
-    <div className={styles.popup}>
+    <div ref={rootRef} className={styles.popup}>
       {editing ? (
         <input
           type="text"
@@ -689,7 +711,7 @@ const MarkerPopupContent = ({ pin, tripId, onAddPin, onEdit, onDelete }) => {
         <dd>{pin.userName || 'nieznany'}</dd>
         {nearby.length > 0 && (
           <>
-            <dt>Najbliższe pinezki:</dt>
+            <dt>Najbliżej:</dt>
             <dd>
               {nearby.map((item) => (
                 <div key={item.id}>
@@ -1699,7 +1721,7 @@ const PlannerPage = () => {
                 icon={getPoiIcon(poi.category)}
               >
                 <Popup>
-                  <PoiPopupContent poi={poi} />
+                  <PoiPopupContent poi={poi} onAddPin={handleCreatePin} />
                 </Popup>
               </Marker>
             ))}
