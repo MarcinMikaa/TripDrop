@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { publicationService } from '../../services/PublicationService';
 import { tripPointService } from '../../services/TripPointService';
-import { swalError, toastSuccess } from '../../utils/swal';
+import { swalConfirmDelete, swalError, toastSuccess } from '../../utils/swal';
 import { PUBLICATION_TAGS, PUBLICATION_TAG_LABELS, MAX_PUBLICATION_TAGS } from '../../utils/publicationTags';
 import { pluralize, PLACE_FORMS, DAY_FORMS } from '../../utils/pluralize';
 import pageStyles from './ManageTripPage.module.scss';
@@ -77,6 +77,7 @@ const PublicationTab = ({ trip, onGoToInfo }) => {
     visibility: 'public',
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -116,6 +117,7 @@ const PublicationTab = ({ trip, onGoToInfo }) => {
 
   const previousIds = useMemo(() => new Set(publication?.pointIds ?? []), [publication]);
 
+  const isWithdrawn = publication?.status === 'withdrawn';
   const hasDates = days.length > 0;
   const canPublish = hasDates && publishableIds.size > 0;
   const skippedCount = points.length - publishableIds.size;
@@ -185,7 +187,12 @@ const PublicationTab = ({ trip, onGoToInfo }) => {
   };
 
   const handlePublish = async () => {
-    const wasPublished = publication !== null;
+    const successMessage = !publication
+      ? 'Wycieczka opublikowana!'
+      : isWithdrawn
+        ? 'Opublikowano ponownie. Link znowu działa.'
+        : 'Publikacja zaktualizowana.';
+
     setIsSaving(true);
     try {
       const saved = await publicationService.publish(trip.id, {
@@ -198,11 +205,30 @@ const PublicationTab = ({ trip, onGoToInfo }) => {
       });
       setPublication(saved);
       setMode('view');
-      toastSuccess(wasPublished ? 'Publikacja zaktualizowana.' : 'Wycieczka opublikowana!');
+      toastSuccess(successMessage);
     } catch (err) {
       swalError('Nie udało się opublikować', err.message);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleWithdraw = async () => {
+    const result = await swalConfirmDelete(
+      'Wycofać publikację?',
+      'Trasa zniknie z Odkrywaj, a link przestanie działać. Możesz ją później opublikować ponownie i ten sam link znowu zadziała.',
+    );
+    if (!result.isConfirmed) return;
+
+    setIsWithdrawing(true);
+    try {
+      const saved = await publicationService.withdraw(trip.id);
+      setPublication(saved);
+      toastSuccess('Publikacja wycofana.');
+    } catch (err) {
+      swalError('Nie udało się wycofać', err.message);
+    } finally {
+      setIsWithdrawing(false);
     }
   };
 
@@ -217,7 +243,7 @@ const PublicationTab = ({ trip, onGoToInfo }) => {
   };
 
   if (status === 'loading') {
-    return <p className={styles.muted}>Ładowanie…</p>;
+    return <p className={styles.muted}>Ładowanie...</p>;
   }
 
   if (status === 'error') {
@@ -283,15 +309,38 @@ const PublicationTab = ({ trip, onGoToInfo }) => {
           </p>
           <p className={styles.muted}>
             Opublikowano {dateFormatter.format(new Date(publication.publishedAt))}
-            {publication.updatedAt ? `, zaktualizowano ${dateFormatter.format(new Date(publication.updatedAt))}` : ''}
+            {publication.updatedAt ? `, zmieniono ${dateFormatter.format(new Date(publication.updatedAt))}` : ''}
           </p>
+
+          {isWithdrawn && (
+            <p className={styles.muted}>
+              Trasa nie jest widoczna w Odkrywaj, a jej link pokazuje informację o wycofaniu. Ponowna publikacja
+              przywróci ten sam link, płomienie i licznik kopii.
+            </p>
+          )}
+
           <div className={styles.actions}>
-            <button type="button" className={pageStyles.saveBtn} onClick={startWizard} disabled={!canPublish}>
-              Zaktualizuj publikację
+            <button
+              type="button"
+              className={pageStyles.saveBtn}
+              onClick={startWizard}
+              disabled={!canPublish || isWithdrawing}>
+              {isWithdrawn ? 'Opublikuj ponownie' : 'Zaktualizuj publikację'}
             </button>
-            <button type="button" className={styles.secondaryBtn} onClick={handleCopyLink}>
-              Kopiuj link
-            </button>
+            {!isWithdrawn && (
+              <>
+                <button type="button" className={styles.secondaryBtn} onClick={handleCopyLink}>
+                  Kopiuj link
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.secondaryBtn} ${styles.withdrawBtn}`}
+                  onClick={handleWithdraw}
+                  disabled={isWithdrawing}>
+                  {isWithdrawing ? 'Wycofywanie...' : 'Wycofaj publikację'}
+                </button>
+              </>
+            )}
           </div>
         </div>
         {blocker}
@@ -303,7 +352,9 @@ const PublicationTab = ({ trip, onGoToInfo }) => {
 
   return (
     <>
-      <p className={pageStyles.contentTitle}>{publication ? 'Aktualizacja publikacji' : 'Nowa publikacja'}</p>
+      <p className={pageStyles.contentTitle}>
+        {!publication ? 'Nowa publikacja' : isWithdrawn ? 'Ponowna publikacja' : 'Aktualizacja publikacji'}
+      </p>
 
       <ol className={styles.stepper}>
         {STEPS.map((label, i) => (
@@ -504,8 +555,8 @@ const PublicationTab = ({ trip, onGoToInfo }) => {
                   <strong>Dzień {day.index + 1}</strong>
                   <span className={styles.muted}>
                     {chosen.length === 0
-                      ? ' — bez punktów'
-                      : ` — ${chosen.map((point) => point.name?.trim() || 'Bez nazwy').join(', ')}`}
+                      ? ' - bez punktów'
+                      : ` - ${chosen.map((point) => point.name?.trim() || 'Bez nazwy').join(', ')}`}
                   </span>
                 </div>
               );
@@ -537,7 +588,13 @@ const PublicationTab = ({ trip, onGoToInfo }) => {
             className={pageStyles.saveBtn}
             disabled={!canProceed || isSaving}
             onClick={handlePublish}>
-            {isSaving ? 'Publikowanie…' : publication ? 'Zaktualizuj publikację' : 'Opublikuj'}
+            {isSaving
+              ? 'Publikowanie...'
+              : !publication
+                ? 'Opublikuj'
+                : isWithdrawn
+                  ? 'Opublikuj ponownie'
+                  : 'Zaktualizuj publikację'}
           </button>
         )}
       </div>

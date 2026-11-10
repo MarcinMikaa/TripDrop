@@ -3,11 +3,12 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using TripDrop.Api.Infrastructure;
+using TripDrop.Application.Common;
 using TripDrop.Domain.Repositories;
 using TripDrop.Infrastructure.Persistence;
 using TripDrop.Infrastructure.Realtime;
 using TripDrop.Infrastructure.Repositories;
-using TripDrop.Application.Common;
 
 namespace TripDrop.Api
 {
@@ -35,6 +36,8 @@ namespace TripDrop.Api
             builder.Services.AddScoped<ITripPointRepository, TripPointRepository>();
             builder.Services.AddHttpClient<IRealtimeNotifier, RealtimeNotifier>();
             builder.Services.AddScoped<IPublishedTripRepository, PublishedTripRepository>();
+            builder.Services.AddProblemDetails();
+            builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 
             AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
@@ -124,6 +127,7 @@ namespace TripDrop.Api
             app.UseAuthentication();
             app.UseAuthorization();
 
+            app.UseExceptionHandler();
 
             app.MapControllers();
 

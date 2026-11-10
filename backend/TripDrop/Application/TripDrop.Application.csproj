@@ -19,7 +19,6 @@
 
   <ItemGroup>
     <Folder Include="TripPoints\Commands\" />
-    <Folder Include="TripPoints\Dto\" />
     <Folder Include="TripPoints\Users\" />
   </ItemGroup>
 

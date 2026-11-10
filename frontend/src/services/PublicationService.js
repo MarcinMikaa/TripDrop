@@ -18,4 +18,13 @@ export const publicationService = {
       throw toApiError(err, 'Nie udało się opublikować wycieczki.');
     }
   },
+
+  withdraw: async (tripId) => {
+    try {
+      const res = await apiClient.delete(`/trips/${tripId}/publication`);
+      return res.data;
+    } catch (err) {
+      throw toApiError(err, 'Nie udało się wycofać publikacji.');
+    }
+  },
 };

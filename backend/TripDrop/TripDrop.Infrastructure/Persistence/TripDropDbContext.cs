@@ -17,6 +17,7 @@ namespace TripDrop.Infrastructure.Persistence
         public DbSet<TripParticipant> TripParticipants => Set<TripParticipant>();
         public DbSet<TripPoint> TripPoints => Set<TripPoint>();
         public DbSet<PublishedTrip> PublishedTrips => Set<PublishedTrip>();
+        public DbSet<PublishedTripVote> PublishedTripVotes => Set<PublishedTripVote>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -161,6 +162,25 @@ namespace TripDrop.Infrastructure.Persistence
                 entity.HasIndex(e => e.AuthorId);
                 entity.HasIndex(e => e.Tags).HasMethod("GIN");
                 entity.HasIndex(e => e.Center).HasMethod("GIST");
+                entity.HasIndex(e => e.VoteCount);
+            });
+
+            modelBuilder.Entity<PublishedTripVote>(entity =>
+            {
+                entity.HasKey(e => new { e.PublishedTripId, e.UserId });
+                entity.Property(e => e.CreatedAt).IsRequired();
+
+                entity.HasOne<PublishedTrip>()
+                    .WithMany()
+                    .HasForeignKey(e => e.PublishedTripId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => e.UserId);
             });
         }
     }

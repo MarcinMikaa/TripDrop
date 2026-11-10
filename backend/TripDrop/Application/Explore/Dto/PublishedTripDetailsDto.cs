@@ -13,6 +13,8 @@
         int? TotalDistanceM,
         int? TotalDurationS,
         int CopyCount,
+        int VoteCount,
+        bool HasVoted,
         DateTime PublishedAt,
         DateTime? UpdatedAt,
         bool IsMine,

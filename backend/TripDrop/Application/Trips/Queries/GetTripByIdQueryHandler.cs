@@ -26,17 +26,7 @@ namespace TripDrop.Application.Trips.Queries
             if (!isOwnerOrParticipant)
                 throw new UnauthorizedAccessException("Brak dostępu do tej wycieczki.");
 
-            return new TripDto(
-                trip.Id,
-                trip.Name,
-                trip.Description,
-                trip.StartDate,
-                trip.EndDate,
-                trip.CreatedAt,
-                IsOwner: trip.OwnerId == request.CurrentUserId,
-                ParticipantCount: trip.Participants.Count,
-                Participants: trip.Participants.Select(p => new TripParticipantDto(p.User.Id, p.User.Username))
-            );
+            return TripMapper.ToDto(trip, request.CurrentUserId);
         }
     }
 }

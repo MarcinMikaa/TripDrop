@@ -122,6 +122,20 @@ namespace TripDrop.Api.Controllers
             catch (InvalidOperationException ex) { return BadRequest(new { Error = ex.Message }); }
         }
 
+        [HttpPut("{id:guid}/plan-lock")]
+        public async Task<IActionResult> LockPlan(Guid id, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(new SetTripPlanLockCommand(id, GetCurrentUserId(), Locked: true), cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpDelete("{id:guid}/plan-lock")]
+        public async Task<IActionResult> UnlockPlan(Guid id, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(new SetTripPlanLockCommand(id, GetCurrentUserId(), Locked: false), cancellationToken);
+            return Ok(result);
+        }
+
         [HttpDelete("{id:guid}/participants/{userId:guid}")]
         public async Task<IActionResult> RemoveParticipant(Guid id, Guid userId, CancellationToken cancellationToken)
         {

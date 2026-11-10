@@ -19,7 +19,7 @@ namespace TripDrop.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.31")
+                .HasAnnotation("ProductVersion", "8.0.33")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "postgis");
@@ -131,6 +131,9 @@ namespace TripDrop.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<int>("VoteCount")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AuthorId");
@@ -146,9 +149,29 @@ namespace TripDrop.Infrastructure.Migrations
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Tags"), "GIN");
 
+                    b.HasIndex("VoteCount");
+
                     b.HasIndex("Status", "Visibility", "PublishedAt");
 
                     b.ToTable("PublishedTrips");
+                });
+
+            modelBuilder.Entity("TripDrop.Domain.Entities.PublishedTripVote", b =>
+                {
+                    b.Property<Guid>("PublishedTripId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("PublishedTripId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("PublishedTripVotes");
                 });
 
             modelBuilder.Entity("TripDrop.Domain.Entities.Trip", b =>
@@ -173,6 +196,9 @@ namespace TripDrop.Infrastructure.Migrations
 
                     b.Property<Guid>("OwnerId")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("PlanLockedAt")
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid?>("SourcePublishedTripId")
                         .HasColumnType("uuid");
@@ -314,6 +340,21 @@ namespace TripDrop.Infrastructure.Migrations
                     b.Navigation("Author");
 
                     b.Navigation("SourceTrip");
+                });
+
+            modelBuilder.Entity("TripDrop.Domain.Entities.PublishedTripVote", b =>
+                {
+                    b.HasOne("TripDrop.Domain.Entities.PublishedTrip", null)
+                        .WithMany()
+                        .HasForeignKey("PublishedTripId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TripDrop.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("TripDrop.Domain.Entities.Trip", b =>

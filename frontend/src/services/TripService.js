@@ -5,6 +5,11 @@ const getHeaders = () => ({
   Authorization: `Bearer ${localStorage.getItem('jwt_token')}`,
 });
 
+const readError = async (res, fallback) => {
+  const body = await res.json().catch(() => ({}));
+  return new Error(body.error || body.Error || fallback);
+};
+
 export const tripService = {
   getAll: async () => {
     const res = await fetch(`${API_BASE}/api/trips`, {
@@ -28,10 +33,7 @@ export const tripService = {
       headers: getHeaders(),
       body: JSON.stringify(data),
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.Error || `Błąd tworzenia wycieczki: ${res.status}`);
-    }
+    if (!res.ok) throw await readError(res, `Błąd tworzenia wycieczki: ${res.status}`);
     return res.json();
   },
 
@@ -41,10 +43,7 @@ export const tripService = {
       headers: getHeaders(),
       body: JSON.stringify(data),
     });
-    if (!res.ok) {
-      const e = await res.json().catch(() => ({}));
-      throw new Error(e.Error || 'Błąd zapisu.');
-    }
+    if (!res.ok) throw await readError(res, 'Błąd zapisu.');
   },
 
   delete: async (id) => {
@@ -52,10 +51,7 @@ export const tripService = {
       method: 'DELETE',
       headers: getHeaders(),
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.Error || `Błąd usuwania wycieczki: ${res.status}`);
-    }
+    if (!res.ok) throw await readError(res, `Błąd usuwania wycieczki: ${res.status}`);
   },
 
   addParticipant: async (tripId, userId) => {
@@ -64,10 +60,7 @@ export const tripService = {
       headers: getHeaders(),
       body: JSON.stringify({ userId }),
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.Error || `Błąd dodawania uczestnika: ${res.status}`);
-    }
+    if (!res.ok) throw await readError(res, `Błąd dodawania uczestnika: ${res.status}`);
   },
 
   removeParticipant: async (tripId, userId) => {
@@ -75,16 +68,32 @@ export const tripService = {
       method: 'DELETE',
       headers: getHeaders(),
     });
-    if (!res.ok) {
-      const e = await res.json().catch(() => ({}));
-      throw new Error(e.Error || 'Błąd usuwania.');
-    }
+    if (!res.ok) throw await readError(res, 'Błąd usuwania.');
   },
 
   leave: async (id) => {
     const res = await fetch(`${API_BASE}/api/trips/${id}/leave`, {
-      method: 'POST', headers: getHeaders(),
+      method: 'POST',
+      headers: getHeaders(),
     });
-    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.Error || 'Błąd opuszczania wycieczki.'); }
+    if (!res.ok) throw await readError(res, 'Błąd opuszczania wycieczki.');
+  },
+
+  lockPlan: async (id) => {
+    const res = await fetch(`${API_BASE}/api/trips/${id}/plan-lock`, {
+      method: 'PUT',
+      headers: getHeaders(),
+    });
+    if (!res.ok) throw await readError(res, 'Nie udało się zamknąć planu.');
+    return res.json();
+  },
+
+  unlockPlan: async (id) => {
+    const res = await fetch(`${API_BASE}/api/trips/${id}/plan-lock`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    if (!res.ok) throw await readError(res, 'Nie udało się wznowić planowania.');
+    return res.json();
   },
 };

@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { exploreService } from '../../services/ExploreService';
-import { swalError } from '../../utils/swal';
+import useAuth from '../../hooks/useAuth';
+import { swalError, toastError } from '../../utils/swal';
 import { PUBLICATION_TAGS, PUBLICATION_TAG_LABELS } from '../../utils/publicationTags';
 import { pluralize, PLACE_FORMS, DAY_FORMS } from '../../utils/pluralize';
 import { formatDistance } from '../../utils/routeFormat';
 import RouteSilhouette from '../../components/RouteSilhouette/RouteSilhouette';
+import VoteButton from '../../components/VoteButton/VoteButton';
 import styles from './ExplorePage.module.scss';
 
 const PAGE_SIZE = 24;
@@ -23,11 +25,11 @@ const LENGTH_OPTIONS = [
 
 const SORT_OPTIONS = [
   { value: '', label: 'Najnowsze' },
+  { value: 'hot', label: 'Najwyżej oceniane' },
   { value: 'popular', label: 'Najczęściej kopiowane' },
 ];
 
-const parseTags = (value) =>
-  value ? value.split(',').filter((tag) => PUBLICATION_TAG_LABELS[tag]) : [];
+const parseTags = (value) => (value ? value.split(',').filter((tag) => PUBLICATION_TAG_LABELS[tag]) : []);
 
 const buildParams = (q, tagsParam, length, sort) => {
   const lengthOption = LENGTH_OPTIONS.find((option) => option.value === length);
@@ -42,7 +44,7 @@ const buildParams = (q, tagsParam, length, sort) => {
 
 const makeKey = (...parts) => parts.join('|');
 
-const TripCard = ({ trip }) => {
+const TripCard = ({ trip, votePending, onVote }) => {
   const extraTags = trip.tags.length - MAX_CARD_TAGS;
   const meta = [
     pluralize(trip.dayCount, DAY_FORMS),
@@ -50,22 +52,20 @@ const TripCard = ({ trip }) => {
     trip.totalDistanceM != null ? formatDistance(trip.totalDistanceM) : null,
   ]
     .filter(Boolean)
-    .join(' - ');
+    .join(' · ');
 
   return (
-    <Link to={`/explore/${trip.id}`} className={styles.card}>
+    <article className={styles.card}>
       <div className={styles.cardMap}>
-        <RouteSilhouette
-          preview={trip.preview}
-          className={styles.silhouette}
-          label={`Szkic trasy: ${trip.title}`}
-        />
+        <RouteSilhouette preview={trip.preview} className={styles.silhouette} label={`Szkic trasy: ${trip.title}`} />
       </div>
       <div className={styles.cardBody}>
-        <h2 className={styles.cardTitle}>{trip.title}</h2>
-        <p className={styles.cardSub}>
-          {[trip.region, `@${trip.author}`].filter(Boolean).join(' - ')}
-        </p>
+        <h2 className={styles.cardTitle}>
+          <Link to={`/explore/${trip.id}`} className={styles.cardLink}>
+            {trip.title}
+          </Link>
+        </h2>
+        <p className={styles.cardSub}>{[trip.region, `@${trip.author}`].filter(Boolean).join(' · ')}</p>
         <p className={styles.cardMeta}>{meta}</p>
         <div className={styles.cardFooter}>
           <div className={styles.cardTags}>
@@ -76,19 +76,31 @@ const TripCard = ({ trip }) => {
             ))}
             {extraTags > 0 && <span className={styles.cardTag}>+{extraTags}</span>}
           </div>
-          {trip.copyCount > 0 && (
-            <span className={styles.copies} title="Ile razy skopiowano">
-              <FontAwesomeIcon icon="copy" /> {trip.copyCount}
-            </span>
-          )}
+          <div className={styles.cardStats}>
+            {trip.copyCount > 0 && (
+              <span className={styles.copies} title="Ile razy skopiowano">
+                <FontAwesomeIcon icon="copy" /> {trip.copyCount}
+              </span>
+            )}
+            <VoteButton
+              size="sm"
+              count={trip.voteCount}
+              voted={trip.hasVoted}
+              pending={votePending}
+              onClick={() => onVote(trip)}
+            />
+          </div>
         </div>
       </div>
-    </Link>
+    </article>
   );
 };
 
 const ExplorePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const q = searchParams.get('q') ?? '';
   const tagsParam = searchParams.get('tags') ?? '';
@@ -102,6 +114,7 @@ const ExplorePage = () => {
   const [reloadToken, setReloadToken] = useState(0);
   const [result, setResult] = useState({ key: null, items: [], hasMore: false, error: null });
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [pendingVotes, setPendingVotes] = useState(() => new Set());
 
   const queryKey = makeKey(q, tagsParam, length, sort, reloadToken);
   const isLoading = result.key !== queryKey;
@@ -111,10 +124,7 @@ const ExplorePage = () => {
     const controller = new AbortController();
 
     exploreService
-      .getTrips(
-        { ...buildParams(q, tagsParam, length, sort), skip: 0, take: PAGE_SIZE },
-        { signal: controller.signal }
-      )
+      .getTrips({ ...buildParams(q, tagsParam, length, sort), skip: 0, take: PAGE_SIZE }, { signal: controller.signal })
       .then((page) => setResult({ key, items: page.items, hasMore: page.hasMore, error: null }))
       .catch((err) => {
         if (err.canceled) return;
@@ -136,7 +146,7 @@ const ExplorePage = () => {
           else next.delete('q');
           return next;
         },
-        { replace: true }
+        { replace: true },
       );
     }, SEARCH_DEBOUNCE_MS);
 
@@ -151,14 +161,12 @@ const ExplorePage = () => {
         else next.delete(name);
         return next;
       },
-      { replace: true }
+      { replace: true },
     );
   };
 
   const toggleTag = (key) => {
-    const next = selectedTags.includes(key)
-      ? selectedTags.filter((tag) => tag !== key)
-      : [...selectedTags, key];
+    const next = selectedTags.includes(key) ? selectedTags.filter((tag) => tag !== key) : [...selectedTags, key];
     updateParam('tags', next.join(','));
   };
 
@@ -193,13 +201,45 @@ const ExplorePage = () => {
     }
   };
 
+  const updateItem = (tripId, changes) =>
+    setResult((prev) => ({
+      ...prev,
+      items: prev.items.map((item) => (item.id === tripId ? { ...item, ...changes } : item)),
+    }));
+
+  const handleVote = async (trip) => {
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: location.pathname + location.search } });
+      return;
+    }
+    if (pendingVotes.has(trip.id)) return;
+
+    const nextVoted = !trip.hasVoted;
+
+    updateItem(trip.id, { hasVoted: nextVoted, voteCount: trip.voteCount + (nextVoted ? 1 : -1) });
+    setPendingVotes((prev) => new Set(prev).add(trip.id));
+
+    try {
+      const saved = nextVoted ? await exploreService.vote(trip.id) : await exploreService.unvote(trip.id);
+      updateItem(trip.id, { hasVoted: saved.hasVoted, voteCount: saved.voteCount });
+    } catch (err) {
+      updateItem(trip.id, { hasVoted: trip.hasVoted, voteCount: trip.voteCount });
+      toastError(err.message);
+    } finally {
+      setPendingVotes((prev) => {
+        const next = new Set(prev);
+        next.delete(trip.id);
+        return next;
+      });
+    }
+  };
+
   return (
     <div className={styles.page}>
       <header className={styles.header}>
         <h1 className={styles.title}>Odkrywaj</h1>
         <p className={styles.subtitle}>
-          Trasy opublikowane przez innych. Znajdź inspirację, skopiuj ją do swoich wycieczek
-          i dopasuj do siebie.
+          Trasy opublikowane przez innych. Znajdź inspirację, skopiuj ją do swoich wycieczek i dopasuj do siebie.
         </p>
       </header>
 
@@ -220,8 +260,7 @@ const ExplorePage = () => {
           className={styles.select}
           value={length}
           aria-label="Długość wycieczki"
-          onChange={(e) => updateParam('days', e.target.value)}
-        >
+          onChange={(e) => updateParam('days', e.target.value)}>
           {LENGTH_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
@@ -233,8 +272,7 @@ const ExplorePage = () => {
           className={styles.select}
           value={sort}
           aria-label="Sortowanie"
-          onChange={(e) => updateParam('sort', e.target.value)}
-        >
+          onChange={(e) => updateParam('sort', e.target.value)}>
           {SORT_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
@@ -252,8 +290,7 @@ const ExplorePage = () => {
               type="button"
               aria-pressed={selected}
               className={`${styles.tag} ${selected ? styles.tagSelected : ''}`}
-              onClick={() => toggleTag(tag.key)}
-            >
+              onClick={() => toggleTag(tag.key)}>
               {tag.label}
             </button>
           );
@@ -274,11 +311,7 @@ const ExplorePage = () => {
       ) : result.error ? (
         <div className={styles.state}>
           <p>{result.error}</p>
-          <button
-            type="button"
-            className={styles.secondaryBtn}
-            onClick={() => setReloadToken((token) => token + 1)}
-          >
+          <button type="button" className={styles.secondaryBtn} onClick={() => setReloadToken((token) => token + 1)}>
             Spróbuj ponownie
           </button>
         </div>
@@ -299,18 +332,13 @@ const ExplorePage = () => {
         <>
           <div className={styles.grid}>
             {result.items.map((trip) => (
-              <TripCard key={trip.id} trip={trip} />
+              <TripCard key={trip.id} trip={trip} votePending={pendingVotes.has(trip.id)} onVote={handleVote} />
             ))}
           </div>
 
           {result.hasMore && (
             <div className={styles.more}>
-              <button
-                type="button"
-                className={styles.secondaryBtn}
-                disabled={isLoadingMore}
-                onClick={handleLoadMore}
-              >
+              <button type="button" className={styles.secondaryBtn} disabled={isLoadingMore} onClick={handleLoadMore}>
                 {isLoadingMore ? 'Ładowanie…' : 'Pokaż więcej'}
               </button>
             </div>

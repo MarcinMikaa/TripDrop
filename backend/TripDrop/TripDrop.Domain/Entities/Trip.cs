@@ -16,6 +16,9 @@ namespace TripDrop.Domain.Entities
         public DateTime? EndDate { get; private set; }
         public DateTime CreatedAt { get; private set; }
         public Guid? SourcePublishedTripId { get; private set; }
+        public DateTime? PlanLockedAt { get; private set; }
+
+        public bool IsPlanLocked => PlanLockedAt is not null;
 
         public virtual User Owner { get; private set; } = null!;
         public ICollection<TripParticipant> Participants { get; private set; } = new List<TripParticipant>();
@@ -45,5 +48,19 @@ namespace TripDrop.Domain.Entities
         {
             SourcePublishedTripId = publishedTripId;
         }
+
+        public void LockPlan()
+        {
+            if (IsPlanLocked) return;
+            PlanLockedAt = DateTime.UtcNow;
+        }
+
+        public void UnlockPlan()
+        {
+            PlanLockedAt = null;
+        }
+
+        public bool ChangesDates(DateTime? startDate, DateTime? endDate) =>
+            startDate?.Date != StartDate?.Date || endDate?.Date != EndDate?.Date;
     }
 }

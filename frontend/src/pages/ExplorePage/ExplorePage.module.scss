@@ -136,14 +136,13 @@
 }
 
 .card {
+  position: relative;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  color: inherit;
-  text-decoration: none;
   transition:
     border-color 0.15s,
     box-shadow 0.15s,
@@ -155,9 +154,24 @@
     transform: translateY(-2px);
   }
 
-  &:focus-visible {
+  &:has(.cardLink:focus-visible) {
     outline: 2px solid var(--steel);
     outline-offset: 2px;
+  }
+}
+
+.cardLink {
+  color: inherit;
+  text-decoration: none;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+
+  &:focus-visible {
+    outline: none;
   }
 }
 
@@ -238,6 +252,13 @@
   flex-shrink: 0;
   color: var(--text-muted);
   font-size: 0.8rem;
+}
+
+.cardStats {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 10px;
 }
 
 .skeleton {

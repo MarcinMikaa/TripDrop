@@ -1,0 +1,72 @@
+$flame: #d9480f;
+
+.button {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  background: var(--bg);
+  color: var(--text-muted);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    color 0.15s;
+
+  &:hover {
+    border-color: $flame;
+    color: $flame;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--steel);
+    outline-offset: 2px;
+  }
+
+  &[aria-busy='true'] {
+    cursor: progress;
+  }
+
+  &:active .icon {
+    transform: scale(1.25);
+  }
+}
+
+.icon {
+  transition: transform 0.15s;
+}
+
+.count {
+  font-variant-numeric: tabular-nums;
+}
+
+.sm {
+  padding: 3px 9px;
+  font-size: 0.78rem;
+}
+
+.md {
+  padding: 8px 14px;
+  font-size: 0.875rem;
+}
+
+.voted {
+  border-color: rgba(217, 72, 15, 0.45);
+  background: rgba(217, 72, 15, 0.08);
+  color: $flame;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon {
+    transition: none;
+  }
+
+  .button:active .icon {
+    transform: none;
+  }
+}

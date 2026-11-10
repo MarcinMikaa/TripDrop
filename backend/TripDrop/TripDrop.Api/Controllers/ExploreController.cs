@@ -39,7 +39,7 @@ namespace TripDrop.Api.Controllers
                 : tags.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
             var page = await _mediator.Send(
-                new GetPublishedTripsQuery(search, tagList, minDays, maxDays, sort, skip, take),
+                new GetPublishedTripsQuery(search, tagList, minDays, maxDays, sort, skip, take, TryGetCurrentUserId()),
                 cancellationToken);
 
             return Ok(page);
@@ -96,6 +96,39 @@ namespace TripDrop.Api.Controllers
             catch (RequestValidationException ex)
             {
                 return BadRequest(new { Error = ex.Message });
+            }
+        }
+
+        [Authorize]
+        [HttpPut("{id:guid}/vote")]
+        public Task<IActionResult> Vote(Guid id, CancellationToken cancellationToken) =>
+            SetVote(id, true, cancellationToken);
+
+        [Authorize]
+        [HttpDelete("{id:guid}/vote")]
+        public Task<IActionResult> Unvote(Guid id, CancellationToken cancellationToken) =>
+            SetVote(id, false, cancellationToken);
+
+        private async Task<IActionResult> SetVote(Guid id, bool voted, CancellationToken cancellationToken)
+        {
+            var userId = TryGetCurrentUserId();
+            if (userId is null) return Forbid();
+
+            try
+            {
+                var result = await _mediator.Send(
+                    new SetPublicationVoteCommand(id, userId.Value, voted),
+                    cancellationToken);
+
+                return Ok(result);
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(new { Error = ex.Message });
+            }
+            catch (GoneException ex)
+            {
+                return StatusCode(StatusCodes.Status410Gone, new { Error = ex.Message });
             }
         }
     }

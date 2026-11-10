@@ -52,12 +52,20 @@ namespace TripDrop.Infrastructure.Repositories
             if (criteria.MaxDays is int maxDays)
                 query = query.Where(p => p.DayCount <= maxDays);
 
-            query = criteria.Sort == PublishedTripSort.MostCopied
-                ? query.OrderByDescending(p => p.CopyCount)
-                       .ThenByDescending(p => p.PublishedAt)
-                       .ThenBy(p => p.Id)
-                : query.OrderByDescending(p => p.PublishedAt)
-                       .ThenBy(p => p.Id);
+            query = criteria.Sort switch
+            {
+                PublishedTripSort.MostVoted => query
+                    .OrderByDescending(p => p.VoteCount)
+                    .ThenByDescending(p => p.PublishedAt)
+                    .ThenBy(p => p.Id),
+                PublishedTripSort.MostCopied => query
+                    .OrderByDescending(p => p.CopyCount)
+                    .ThenByDescending(p => p.PublishedAt)
+                    .ThenBy(p => p.Id),
+                _ => query
+                    .OrderByDescending(p => p.PublishedAt)
+                    .ThenBy(p => p.Id),
+            };
 
             return query
                 .Skip(criteria.Skip)
@@ -70,6 +78,12 @@ namespace TripDrop.Infrastructure.Repositories
                 .AsNoTracking()
                 .Include(p => p.Author)
                 .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+
+        public Task<PublicationStatus?> GetStatusAsync(Guid id, CancellationToken cancellationToken) =>
+            _context.PublishedTrips
+                .Where(p => p.Id == id)
+                .Select(p => (PublicationStatus?)p.Status)
+                .FirstOrDefaultAsync(cancellationToken);
 
         public async Task AddAsync(PublishedTrip publishedTrip, CancellationToken cancellationToken) =>
             await _context.PublishedTrips.AddAsync(publishedTrip, cancellationToken);
@@ -101,6 +115,91 @@ namespace TripDrop.Infrastructure.Repositories
 
                 await transaction.CommitAsync(cancellationToken);
             });
+        }
+
+        public Task<bool> HasVotedAsync(Guid publicationId, Guid userId, CancellationToken cancellationToken) =>
+            _context.PublishedTripVotes
+                .AnyAsync(v => v.PublishedTripId == publicationId && v.UserId == userId, cancellationToken);
+        public async Task<IReadOnlySet<Guid>> GetVotedPublicationIdsAsync(
+            Guid userId,
+            IReadOnlyCollection<Guid> publicationIds,
+            CancellationToken cancellationToken)
+        {
+            if (publicationIds.Count == 0) return new HashSet<Guid>();
+
+            var idList = publicationIds.ToList();
+
+            var voted = await _context.PublishedTripVotes
+                .AsNoTracking()
+                .Where(v => v.UserId == userId && idList.Contains(v.PublishedTripId))
+                .Select(v => v.PublishedTripId)
+                .ToListAsync(cancellationToken);
+
+            return voted.ToHashSet();
+        }
+
+        public async Task<int> SetVoteAsync(
+            Guid publicationId,
+            Guid userId,
+            bool voted,
+            CancellationToken cancellationToken)
+        {
+            var strategy = _context.Database.CreateExecutionStrategy();
+
+            return await strategy.ExecuteAsync(async () =>
+            {
+                await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+
+                int changed;
+                if (voted)
+                {
+                    changed = await _context.Database.ExecuteSqlInterpolatedAsync(
+                        $@"INSERT INTO ""PublishedTripVotes"" (""PublishedTripId"", ""UserId"", ""CreatedAt"")
+                           VALUES ({publicationId}, {userId}, {DateTime.UtcNow})
+                           ON CONFLICT DO NOTHING",
+                        cancellationToken);
+                }
+                else
+                {
+                    changed = await _context.PublishedTripVotes
+                        .Where(v => v.PublishedTripId == publicationId && v.UserId == userId)
+                        .ExecuteDeleteAsync(cancellationToken);
+                }
+
+                if (changed > 0)
+                {
+                    var delta = voted ? 1 : -1;
+                    await _context.PublishedTrips
+                        .Where(p => p.Id == publicationId)
+                        .ExecuteUpdateAsync(
+                            s => s.SetProperty(p => p.VoteCount, p => p.VoteCount + delta),
+                            cancellationToken);
+                }
+
+                var voteCount = await _context.PublishedTrips
+                    .Where(p => p.Id == publicationId)
+                    .Select(p => p.VoteCount)
+                    .SingleAsync(cancellationToken);
+
+                await transaction.CommitAsync(cancellationToken);
+                return voteCount;
+            });
+        }
+
+        public async Task<IReadOnlyDictionary<Guid, PublicationVisibility>> GetActiveVisibilitiesAsync(
+            IReadOnlyCollection<Guid> tripIds,
+            CancellationToken cancellationToken)
+        {
+            if (tripIds.Count == 0) return new Dictionary<Guid, PublicationVisibility>();
+
+            var ids = tripIds.ToList();
+
+            return await _context.PublishedTrips
+                .AsNoTracking()
+                .Where(p => p.SourceTripId != null
+                         && ids.Contains(p.SourceTripId.Value)
+                         && p.Status == PublicationStatus.Active)
+                .ToDictionaryAsync(p => p.SourceTripId!.Value, p => p.Visibility, cancellationToken);
         }
     }
 }

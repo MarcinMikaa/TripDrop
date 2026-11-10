@@ -1,4 +1,12 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import '../../leafletGlobals';
 import L from 'leaflet';
@@ -13,12 +21,16 @@ import BaseLayerSwitcher from '../PlannerPage/BaseLayerSwitcher';
 import DayRoutes from '../PlannerPage/DayRoutes';
 import { exploreService } from '../../services/ExploreService';
 import useAuth from '../../hooks/useAuth';
-import { swalError, toastSuccess } from '../../utils/swal';
+import { swalError, toastError, toastSuccess } from '../../utils/swal';
 import { PUBLICATION_TAG_LABELS } from '../../utils/publicationTags';
 import { pluralize, PLACE_FORMS, DAY_FORMS } from '../../utils/pluralize';
 import { formatDistance, formatDuration } from '../../utils/routeFormat';
 import { dayColor } from '../../utils/dayColors';
 import { createPinIcon } from '../../utils/pinIcon';
+import VoteButton from '../../components/VoteButton/VoteButton';
+import DayExportMenu from '../../components/TripExport/DayExportMenu';
+import TripExportMenu from '../../components/TripExport/TripExportMenu';
+import NavigateLink from '../../components/TripExport/NavigateLink';
 import CopyTripDialog from './CopyTripDialog';
 import plannerStyles from '../PlannerPage/PlannerPage.module.scss';
 import styles from './ExploreTripPage.module.scss';
@@ -71,6 +83,7 @@ const FitToBounds = ({ bounds }) => {
   return null;
 };
 
+// TODO: kopia ResizeAware z PlannerPage - scalić przy podziale planera.
 const ResizeAware = () => {
   const map = useMap();
   useEffect(() => {
@@ -94,6 +107,7 @@ const RouteLink = ({ leg }) => (
 const ReadOnlyDay = ({
   day,
   route,
+  exportDay,
   collapsed,
   hiddenOnMap,
   hoveredKey,
@@ -118,7 +132,8 @@ const ReadOnlyDay = ({
           className={styles.dayFocus}
           disabled={day.points.length === 0}
           title="Pokaż dzień na mapie"
-          onClick={() => onFocusDay(day)}>
+          onClick={() => onFocusDay(day)}
+        >
           <span className={plannerStyles.dayName}>Dzień {day.dayNumber}</span>
           {legs.length > 0 && (
             <span className={plannerStyles.dayRouteSummary}>
@@ -129,13 +144,18 @@ const ReadOnlyDay = ({
 
         <span className={plannerStyles.dayCount}>{day.points.length}</span>
 
+        {exportDay?.points.length > 0 && (
+          <DayExportMenu day={exportDay} buttonClassName={plannerStyles.dayToggle} />
+        )}
+
         <button
           type="button"
           className={plannerStyles.dayToggle}
           aria-pressed={hiddenOnMap}
           aria-label={hiddenOnMap ? `Pokaż na mapie: dzień ${day.dayNumber}` : `Ukryj na mapie: dzień ${day.dayNumber}`}
           title={hiddenOnMap ? 'Pokaż na mapie' : 'Ukryj na mapie'}
-          onClick={() => onToggleVisibility(day.key)}>
+          onClick={() => onToggleVisibility(day.key)}
+        >
           <i className={`fas ${hiddenOnMap ? 'fa-eye-slash' : 'fa-eye'}`} aria-hidden="true" />
         </button>
 
@@ -144,7 +164,8 @@ const ReadOnlyDay = ({
           className={`${plannerStyles.dayToggle} ${collapsed ? plannerStyles.dayToggleCollapsed : ''}`}
           aria-expanded={!collapsed}
           aria-label={collapsed ? `Rozwiń: dzień ${day.dayNumber}` : `Zwiń: dzień ${day.dayNumber}`}
-          onClick={() => onToggleCollapse(day.key)}>
+          onClick={() => onToggleCollapse(day.key)}
+        >
           <i className="fas fa-chevron-down" aria-hidden="true" />
         </button>
       </div>
@@ -198,6 +219,7 @@ const ExploreTripPage = () => {
   const [hiddenDayKeys, setHiddenDayKeys] = useState(() => new Set());
   const [routeData, setRouteData] = useState({});
   const [descriptionOpen, setDescriptionOpen] = useState(false);
+  const [isVotePending, setIsVotePending] = useState(false);
 
   const markerRefs = useRef(new Map());
   const pendingFocusRef = useRef(null);
@@ -224,14 +246,15 @@ const ExploreTripPage = () => {
     return () => controller.abort();
   }, [id, reloadToken]);
 
+  const tripTitle = trip?.title;
   useEffect(() => {
-    if (!trip) return undefined;
+    if (!tripTitle) return undefined;
     const previous = document.title;
-    document.title = `${trip.title} - TripDrop`;
+    document.title = `${tripTitle} - TripDrop`;
     return () => {
       document.title = previous;
     };
-  }, [trip]);
+  }, [tripTitle]);
 
   useEffect(() => {
     if (!map) return undefined;
@@ -259,7 +282,7 @@ const ExploreTripPage = () => {
           positions: day.points.map((point) => [point.lat, point.lng]),
         };
       }),
-    [trip],
+    [trip?.days]
   );
 
   const allBounds = useMemo(() => {
@@ -282,7 +305,7 @@ const ExploreTripPage = () => {
             lng: point.lng,
           })),
         })),
-    [days, hiddenDayKeys],
+    [days, hiddenDayKeys]
   );
 
   const handleRoutesComputed = useCallback((dayKey, data) => {
@@ -305,9 +328,26 @@ const ExploreTripPage = () => {
         distance: acc.distance + routeData[day.key].distance,
         time: acc.time + routeData[day.key].time,
       }),
-      { distance: 0, time: 0 },
+      { distance: 0, time: 0 }
     );
   }, [days, routeData]);
+
+  const exportTrip = useMemo(
+    () => ({
+      title: tripTitle ?? 'Trasa',
+      days: days.map((day) => ({
+        label: `Dzień ${day.dayNumber}`,
+        color: dayColor(day.index),
+        points: day.points.map((point) => ({
+          name: point.name?.trim() || 'Bez nazwy',
+          lat: point.lat,
+          lng: point.lng,
+        })),
+      })),
+      unassigned: [],
+    }),
+    [tripTitle, days]
+  );
 
   const hoveredPoint = useMemo(() => {
     if (!hoveredKey) return null;
@@ -321,7 +361,8 @@ const ExploreTripPage = () => {
   const toggleCollapsed = toggleInSet(setCollapsedKeys);
   const toggleHidden = toggleInSet(setHiddenDayKeys);
   const allCollapsed = days.length > 0 && days.every((day) => collapsedKeys.has(day.key));
-  const toggleAllCollapsed = () => setCollapsedKeys(allCollapsed ? new Set() : new Set(days.map((day) => day.key)));
+  const toggleAllCollapsed = () =>
+    setCollapsedKeys(allCollapsed ? new Set() : new Set(days.map((day) => day.key)));
 
   const setMarkerRef = (key) => (instance) => {
     if (instance) markerRefs.current.set(key, instance);
@@ -386,6 +427,31 @@ const ExploreTripPage = () => {
 
   const closeCopyDialog = () => setSearchParams({}, { replace: true });
 
+  const handleVote = async () => {
+    if (!trip || isVotePending) return;
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: `/explore/${id}` } });
+      return;
+    }
+
+    const previous = { hasVoted: trip.hasVoted, voteCount: trip.voteCount };
+    const nextVoted = !trip.hasVoted;
+    const applyVote = (hasVoted, voteCount) =>
+      setResult((prev) => (prev.trip ? { ...prev, trip: { ...prev.trip, hasVoted, voteCount } } : prev));
+
+    applyVote(nextVoted, trip.voteCount + (nextVoted ? 1 : -1));
+    setIsVotePending(true);
+    try {
+      const saved = nextVoted ? await exploreService.vote(id) : await exploreService.unvote(id);
+      applyVote(saved.hasVoted, saved.voteCount);
+    } catch (err) {
+      applyVote(previous.hasVoted, previous.voteCount);
+      toastError(err.message);
+    } finally {
+      setIsVotePending(false);
+    }
+  };
+
   const handleShare = async () => {
     const url = `${window.location.origin}/explore/${id}`;
     const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
@@ -408,7 +474,7 @@ const ExploreTripPage = () => {
   };
 
   if (isLoading) {
-    return <div className={styles.loading}>Ładowanie trasy…</div>;
+    return <div className={styles.loading}>Ładowanie trasy...</div>;
   }
 
   if (result.error) {
@@ -430,7 +496,11 @@ const ExploreTripPage = () => {
         </p>
         <div className={styles.stateActions}>
           {!isGone && !isMissing && (
-            <button type="button" className={styles.secondaryBtn} onClick={() => setReloadToken((token) => token + 1)}>
+            <button
+              type="button"
+              className={styles.secondaryBtn}
+              onClick={() => setReloadToken((token) => token + 1)}
+            >
               Spróbuj ponownie
             </button>
           )}
@@ -494,10 +564,11 @@ const ExploreTripPage = () => {
                   <div className={styles.popupMeta}>
                     Dzień {day.dayNumber} - punkt {i + 1}
                   </div>
+                  <NavigateLink lat={point.lat} lng={point.lng} />
                 </div>
               </Popup>
             </Marker>
-          )),
+          ))
         )}
     </MapContainer>
   );
@@ -511,12 +582,17 @@ const ExploreTripPage = () => {
 
         <div className={styles.titleRow}>
           <h1 className={styles.title}>{trip.title}</h1>
-          <span className={styles.readOnlyChip} title="Edycja jest dostępna po skopiowaniu trasy do swoich wycieczek">
+          <span
+            className={styles.readOnlyChip}
+            title="Edycja jest dostępna po skopiowaniu trasy do swoich wycieczek"
+          >
             <FontAwesomeIcon icon="lock" /> Podgląd
           </span>
         </div>
 
-        {trip.isMine && trip.visibility === 'unlisted' && <span className={styles.badge}>Tylko przez link</span>}
+        {trip.isMine && trip.visibility === 'unlisted' && (
+          <span className={styles.badge}>Tylko przez link</span>
+        )}
 
         <p className={styles.byline}>{[`@${trip.author}`, trip.region].filter(Boolean).join(' - ')}</p>
 
@@ -534,6 +610,12 @@ const ExploreTripPage = () => {
           <button type="button" className={styles.primaryBtn} onClick={handleCopyClick}>
             <FontAwesomeIcon icon="copy" /> Skopiuj do moich wycieczek
           </button>
+          <VoteButton
+            count={trip.voteCount}
+            voted={trip.hasVoted}
+            pending={isVotePending}
+            onClick={handleVote}
+          />
           <button type="button" className={styles.secondaryBtn} onClick={handleShare}>
             <FontAwesomeIcon icon="share-nodes" /> Udostępnij
           </button>
@@ -549,7 +631,8 @@ const ExploreTripPage = () => {
             <p
               className={`${styles.description} ${
                 isLongDescription && !descriptionOpen ? styles.descriptionClamped : ''
-              }`}>
+              }`}
+            >
               {trip.description}
             </p>
             {isLongDescription && (
@@ -569,17 +652,21 @@ const ExploreTripPage = () => {
 
       <div className={`${plannerStyles.daysToolbar} ${styles.stickyToolbar}`}>
         <span className={plannerStyles.daysSummary}>{summary}</span>
-        <button type="button" className={plannerStyles.daysToolbarBtn} onClick={toggleAllCollapsed}>
-          {allCollapsed ? 'Rozwiń wszystkie' : 'Zwiń wszystkie'}
-        </button>
+        <div className={plannerStyles.daysToolbarActions}>
+          <TripExportMenu trip={exportTrip} buttonClassName={plannerStyles.daysToolbarBtn} />
+          <button type="button" className={plannerStyles.daysToolbarBtn} onClick={toggleAllCollapsed}>
+            {allCollapsed ? 'Rozwiń wszystkie' : 'Zwiń wszystkie'}
+          </button>
+        </div>
       </div>
 
       <div className={styles.daysList}>
-        {days.map((day) => (
+        {days.map((day, i) => (
           <ReadOnlyDay
             key={day.key}
             day={day}
             route={routeData[day.key]}
+            exportDay={exportTrip.days[i]}
             collapsed={collapsedKeys.has(day.key)}
             hiddenOnMap={hiddenDayKeys.has(day.key)}
             hoveredKey={hoveredKey}
