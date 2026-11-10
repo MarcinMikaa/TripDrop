@@ -502,12 +502,24 @@
   font-weight: 600;
 }
 
+.popup > :first-child {
+  margin-right: 24px;
+}
+
 .popupMeta {
   display: grid;
   grid-template-columns: auto 1fr;
   column-gap: 8px;
   row-gap: 2px;
   margin: 0;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+
+  &:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+  }
 
   dt {
     color: var(--text-muted);
@@ -521,20 +533,49 @@
 .popupActions {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 
   button {
     width: 100%;
-    background: var(--steel-light);
+    min-height: 44px;
+    padding: 0 16px;
+    border: 1.5px solid var(--amber);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text);
     text-align: center;
-    padding: 4px 8px;
+    transition:
+      background 0.15s,
+      border-color 0.15s,
+      color 0.15s;
+
+    &:hover {
+      background: var(--stone);
+      border-color: var(--amber-dark);
+    }
+
+    &:first-child {
+      border-color: var(--obsidian);
+      background: var(--obsidian);
+      color: var(--linen);
+    }
+
+    &:first-child:hover {
+      background: var(--obsidian);
+      color: var(--amber);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--steel);
+      outline-offset: 2px;
+    }
   }
 }
 
 .routeDetails {
   position: absolute;
   right: 10px;
-  bottom: 24px;
+  bottom: 44px;
   z-index: 1000;
   max-width: 20%;
   max-height: 20%;
@@ -681,7 +722,7 @@
   gap: 8px;
   padding: 6px 10px;
   border-radius: 99px;
-  background: var(--bg);
+  background: var(--stone-light);
   border: 1px solid var(--border);
   box-shadow: 0 2px 10px rgba(10, 10, 10, 0.12);
   cursor: default;
@@ -740,7 +781,7 @@
   min-height: 30px;
   padding: 0 12px;
   white-space: nowrap;
-  background: var(--bg);
+  background: var(--stone-light);
   border: 1px solid var(--border);
   border-radius: 99px;
   box-shadow: 0 2px 10px rgba(10, 10, 10, 0.12);
@@ -750,6 +791,310 @@
 
   &:empty {
     display: none;
+  }
+}
+
+@keyframes mapCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes mapListIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.map.map {
+  --locate-control-icon-color: var(--text);
+  --locate-control-active-color: var(--steel);
+  --locate-control-following-color: var(--amber-dark);
+
+  :global(.leaflet-popup-content-wrapper) {
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--stone-light);
+    color: var(--text);
+    box-shadow:
+      0 14px 34px rgba(10, 10, 10, 0.16),
+      0 2px 6px rgba(10, 10, 10, 0.06);
+    transform-origin: 50% 100%;
+  }
+
+  :global(.leaflet-popup-content) {
+    margin: 14px 16px;
+  }
+
+  :global(.leaflet-popup-tip-container) {
+    transform-origin: 50% 0;
+  }
+
+  :global(.leaflet-popup):has(:global(.leaflet-popup-content):empty) {
+    :global(.leaflet-popup-content-wrapper),
+    :global(.leaflet-popup-tip-container) {
+      opacity: 0;
+    }
+  }
+
+  :global(.leaflet-popup):has(:global(.leaflet-popup-content):not(:empty)) {
+    :global(.leaflet-popup-content-wrapper),
+    :global(.leaflet-popup-tip-container) {
+      animation: mapCardIn 0.3s cubic-bezier(0.2, 0.7, 0.2, 1) 0.05s both;
+    }
+  }
+
+  :global(.leaflet-popup-tip) {
+    background: var(--stone-light);
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    box-shadow: none;
+  }
+
+  :global(.leaflet-popup-close-button) {
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: var(--text-muted);
+    font-size: 20px;
+    line-height: 1;
+    transition:
+      background 0.15s,
+      color 0.15s;
+
+    &:hover,
+    &:focus {
+      background: var(--stone);
+      color: var(--text);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--steel);
+      outline-offset: 0;
+    }
+  }
+
+  :global(.leaflet-bar:not(.leaflet-control-geosearch)) {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--stone-light);
+    background-clip: border-box;
+    box-shadow: 0 4px 14px rgba(10, 10, 10, 0.12);
+
+    a,
+    button {
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      line-height: 44px;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      border-radius: 0;
+      background: transparent;
+      color: var(--text);
+      transition:
+        background 0.15s,
+        color 0.15s;
+
+      &:hover {
+        background: var(--stone);
+        color: var(--text);
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--steel);
+        outline-offset: -4px;
+      }
+
+      &:first-child {
+        border-top-left-radius: calc(var(--radius) - 1px);
+        border-top-right-radius: calc(var(--radius) - 1px);
+      }
+
+      &:last-child {
+        border-bottom: none;
+        border-bottom-left-radius: calc(var(--radius) - 1px);
+        border-bottom-right-radius: calc(var(--radius) - 1px);
+      }
+    }
+
+    a:global(.leaflet-disabled) {
+      background: transparent;
+      color: var(--text-muted);
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    button:global(.shown-active) {
+      background: var(--obsidian);
+      color: var(--amber);
+
+      i {
+        opacity: 1 !important;
+      }
+    }
+
+    :global(.button-state) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+
+  :global(.leaflet-geosearch-bar) {
+    border: none;
+    background: transparent;
+    box-shadow: none;
+
+    form {
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--stone-light);
+      box-shadow: 0 8px 24px rgba(10, 10, 10, 0.12);
+      transition:
+        border-color 0.15s,
+        box-shadow 0.15s;
+
+      &:focus-within {
+        border-color: var(--obsidian);
+        box-shadow:
+          0 0 0 4px rgba(200, 168, 130, 0.35),
+          0 8px 24px rgba(10, 10, 10, 0.14);
+      }
+
+      &:has(:global(.results.active)) {
+        border-radius: var(--radius-lg);
+      }
+    }
+
+    input {
+      height: 44px;
+      margin: 0;
+      padding: 0 44px 0 42px;
+      border: none;
+      border-radius: 999px;
+      background-color: transparent;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b6560' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: 16px center;
+      background-size: 18px 18px;
+      color: var(--text);
+      text-indent: 0;
+
+      &::placeholder {
+        color: var(--text-muted);
+      }
+
+      &:focus {
+        outline: none;
+        box-shadow: none;
+      }
+    }
+
+    button:global(.reset) {
+      top: 6px;
+      right: 6px;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: var(--text-muted);
+      line-height: 1;
+      transition:
+        background 0.15s,
+        color 0.15s;
+
+      &:hover {
+        background: var(--stone);
+        color: var(--text);
+      }
+    }
+
+    :global(.results) {
+      background: transparent;
+    }
+
+    :global(.results.active) {
+      padding: 6px;
+      border-top: 1px solid var(--border);
+      animation: mapListIn 0.25s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+
+      &::after {
+        display: none;
+      }
+    }
+
+    :global(.results) > * {
+      padding: 6px 10px;
+      border: none;
+      border-radius: var(--radius);
+      color: var(--text);
+      transition: background 0.15s;
+    }
+
+    :global(.results) > :global(.active),
+    :global(.results) > :hover {
+      background: var(--stone);
+    }
+  }
+
+  :global(.leaflet-control-attribution) {
+    margin: 0 10px 10px 0;
+    padding: 2px 10px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: rgba(240, 236, 230, 0.92);
+    color: var(--text-muted);
+
+    a {
+      color: var(--steel-dark);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map.map {
+    :global(.leaflet-popup):has(:global(.leaflet-popup-content):not(:empty)) :global(.leaflet-popup-content-wrapper),
+    :global(.leaflet-popup):has(:global(.leaflet-popup-content):not(:empty)) :global(.leaflet-popup-tip-container),
+    :global(.leaflet-geosearch-bar .results.active) {
+      animation: none;
+    }
+
+    :global(.leaflet-bar) a,
+    :global(.leaflet-bar) button,
+    :global(.leaflet-popup-close-button) {
+      transition: none;
+    }
+  }
+
+  .popupActions button {
+    transition: none;
   }
 }
 

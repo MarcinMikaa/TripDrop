@@ -16,8 +16,10 @@
   padding: 8px;
   max-width: calc(var(--map-width, 100vw) - 280px);
   background: var(--stone-light);
-  border-radius: var(--radius);
-  border: 2px solid var(--stone);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: 0 14px 34px rgba(10, 10, 10, 0.16);
+  animation: panelIn 0.3s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
 .tile,
@@ -46,6 +48,23 @@
   background-position: center;
   background-repeat: no-repeat;
   flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(10, 10, 10, 0.12);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.tile:hover .thumb,
+.trigger:hover .thumb {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(10, 10, 10, 0.18);
+}
+
+.tile:focus-visible,
+.trigger:focus-visible {
+  outline: 2px solid var(--steel);
+  outline-offset: 2px;
+  border-radius: var(--radius);
 }
 
 .tileLabel,
@@ -69,4 +88,26 @@
 
 .hidden {
   display: none;
+}
+
+@keyframes panelIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    animation: none;
+  }
+
+  .thumb {
+    transition: none;
+  }
 }
