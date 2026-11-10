@@ -1,5 +1,6 @@
 using MediatR;
 using TripDrop.Application.TripPoints.DTOs;
+using TripDrop.Application.Trips;
 using TripDrop.Domain.Entities;
 using TripDrop.Domain.Repositories;
 using TripDrop.Application.Common;
@@ -34,6 +35,8 @@ namespace TripDrop.Application.TripPoints.Commands
 
             if (!hasAccess)
                 throw new UnauthorizedAccessException("Brak dostępu do tej wycieczki.");
+
+            TripPlanGuard.EnsurePointsEditable(trip);
 
             var existingPoints = await _tripPointRepository.GetByTripIdAsync(request.TripId, cancellationToken);
             var nextPosition = existingPoints

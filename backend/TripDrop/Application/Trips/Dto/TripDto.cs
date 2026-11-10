@@ -10,8 +10,13 @@
         DateTime? EndDate,
         DateTime CreatedAt,
         bool IsOwner,
+        Guid OwnerId,
+        string OwnerUsername,
         int ParticipantCount,
         IEnumerable<TripParticipantDto> Participants,
+        DateTime? PlanLockedAt,
         string? PublicationVisibility = null
     );
+
+    public record TripPlanLockDto(bool IsPlanLocked, DateTime? PlanLockedAt);
 }

@@ -19,17 +19,9 @@ namespace TripDrop.Application.Trips.Queries
         {
             var trips = await _repository.GetByUserIdAsync(request.CurrentUserId, cancellationToken);
 
-            var dtos = trips.Select(t => new TripDto(
-                t.Id,
-                t.Name,
-                t.Description,
-                t.StartDate,
-                t.EndDate,
-                t.CreatedAt,
-                IsOwner: t.OwnerId == request.CurrentUserId,
-                ParticipantCount: t.Participants.Count,
-                Participants: t.Participants.Select(p => new TripParticipantDto(p.User.Id, p.User.Username)).ToList()
-            )).ToList();
+            var dtos = trips
+                .Select(t => TripMapper.ToDto(t, request.CurrentUserId))
+                .ToList();
 
             var visibilities = await _publications.GetActiveVisibilitiesAsync(
                 dtos.Select(d => d.Id).ToList(), cancellationToken);

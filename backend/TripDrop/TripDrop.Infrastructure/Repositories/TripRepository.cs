@@ -17,6 +17,7 @@ namespace TripDrop.Infrastructure.Repositories
         public async Task<IEnumerable<Trip>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken)
         {
             return await _dbContext.Trips
+                .Include(t => t.Owner)
                 .Include(t => t.Participants)
                     .ThenInclude(p => p.User)
                 .Where(t => t.OwnerId == userId ||
@@ -28,6 +29,7 @@ namespace TripDrop.Infrastructure.Repositories
         public async Task<Trip?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
         {
             return await _dbContext.Trips
+                .Include(t => t.Owner)
                 .Include(t => t.Participants)
                     .ThenInclude(p => p.User)
                 .FirstOrDefaultAsync(t => t.Id == id, cancellationToken);

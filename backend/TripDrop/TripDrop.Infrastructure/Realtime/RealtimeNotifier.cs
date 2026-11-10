@@ -26,6 +26,9 @@ namespace TripDrop.Infrastructure.Realtime
         public Task NotifyTripPointsChangedAsync(Guid tripId, CancellationToken cancellationToken)
         => BroadcastAsync($"trip:{tripId}", "points_changed", new { tripId }, cancellationToken);
 
+        public Task NotifyTripPlanLockChangedAsync(Guid tripId, bool isPlanLocked, CancellationToken cancellationToken)
+        => BroadcastAsync($"trip:{tripId}", "plan_lock_changed", new { tripId, isPlanLocked }, cancellationToken);
+
         public Task NotifyFriendRequestsChangedAsync(Guid userId, CancellationToken cancellationToken)
             => BroadcastAsync($"user:{userId}", "friend_requests_changed", new { userId }, cancellationToken);
 

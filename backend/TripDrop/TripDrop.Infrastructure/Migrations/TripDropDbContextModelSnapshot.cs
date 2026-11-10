@@ -197,6 +197,9 @@ namespace TripDrop.Infrastructure.Migrations
                     b.Property<Guid>("OwnerId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime?>("PlanLockedAt")
+                        .HasColumnType("timestamp without time zone");
+
                     b.Property<Guid?>("SourcePublishedTripId")
                         .HasColumnType("uuid");
 

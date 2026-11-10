@@ -1,4 +1,5 @@
 using MediatR;
+using TripDrop.Application.Trips;
 using TripDrop.Domain.Repositories;
 using TripDrop.Application.Common;
 
@@ -37,6 +38,8 @@ namespace TripDrop.Application.TripPoints.Commands
 
             if (!hasAccess)
                 throw new UnauthorizedAccessException("Brak dostępu do tej wycieczki.");
+
+            TripPlanGuard.EnsurePointsEditable(trip);
 
             point.Update(request.Name, request.DayIndex, request.Position);
             await _tripPointRepository.SaveChangesAsync(cancellationToken);
