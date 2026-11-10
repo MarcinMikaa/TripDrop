@@ -14,6 +14,19 @@ export const tripPointService = {
     return res.json();
   },
 
+  getNearby: async (tripId, { lat, lng, excludeId, radius, limit } = {}) => {
+    const params = new URLSearchParams({ lat: String(lat), lng: String(lng) });
+    if (excludeId) params.set('excludeId', excludeId);
+    if (radius) params.set('radius', String(radius));
+    if (limit) params.set('limit', String(limit));
+
+    const res = await fetch(`${API_BASE}/api/trips/${tripId}/points/nearby?${params}`, {
+      headers: getHeaders(),
+    });
+    if (!res.ok) throw new Error(`Błąd wyszukiwania pobliskich pinezek: ${res.status}`);
+    return res.json();
+  },
+
   create: async (tripId, data) => {
     const res = await fetch(`${API_BASE}/api/trips/${tripId}/points`, {
       method: 'POST',

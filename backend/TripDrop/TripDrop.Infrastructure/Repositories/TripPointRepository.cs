@@ -36,6 +36,45 @@ namespace TripDrop.Infrastructure.Repositories
                 .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
         }
 
+        public async Task<IReadOnlyList<NearbyTripPoint>> GetNearestAsync(
+            Guid tripId,
+            double latitude,
+            double longitude,
+            Guid? excludePointId,
+            double? radiusMeters,
+            int limit,
+            CancellationToken cancellationToken)
+        {
+            var excludedId = excludePointId ?? Guid.Empty;
+
+            var query = radiusMeters is double radius
+                ? _dbContext.Database.SqlQuery<NearbyTripPointRow>($"""
+                    SELECT p."Id", p."Name", p."DayIndex",
+                           ST_Distance(p."Location", ST_SetSRID(ST_MakePoint({longitude}, {latitude}), 4326)::geography) AS "DistanceMeters"
+                    FROM "TripPoints" AS p
+                    WHERE p."TripId" = {tripId}
+                      AND p."Id" <> {excludedId}
+                      AND ST_DWithin(p."Location", ST_SetSRID(ST_MakePoint({longitude}, {latitude}), 4326)::geography, {radius})
+                    ORDER BY p."Location" <-> ST_SetSRID(ST_MakePoint({longitude}, {latitude}), 4326)::geography
+                    LIMIT {limit}
+                    """)
+                : _dbContext.Database.SqlQuery<NearbyTripPointRow>($"""
+                    SELECT p."Id", p."Name", p."DayIndex",
+                           ST_Distance(p."Location", ST_SetSRID(ST_MakePoint({longitude}, {latitude}), 4326)::geography) AS "DistanceMeters"
+                    FROM "TripPoints" AS p
+                    WHERE p."TripId" = {tripId}
+                      AND p."Id" <> {excludedId}
+                    ORDER BY p."Location" <-> ST_SetSRID(ST_MakePoint({longitude}, {latitude}), 4326)::geography
+                    LIMIT {limit}
+                    """);
+
+            var rows = await query.ToListAsync(cancellationToken);
+
+            return rows
+                .Select(row => new NearbyTripPoint(row.Id, row.Name, row.DayIndex, row.DistanceMeters))
+                .ToList();
+        }
+
         public async Task AddAsync(TripPoint tripPoint, CancellationToken cancellationToken)
         {
             await _dbContext.TripPoints.AddAsync(tripPoint, cancellationToken);

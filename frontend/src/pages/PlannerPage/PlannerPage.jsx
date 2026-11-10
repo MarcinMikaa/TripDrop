@@ -43,7 +43,7 @@ import { useTripPointsRealtime } from '../../hooks/useTripPointsRealtime';
 import useAuth from '../../hooks/useAuth';
 import { useTripPresence } from '../../hooks/useTripPresence';
 import { colorForUser } from '../../utils/useColor';
-import { swalConfirmDelete } from '../../utils/swal';
+import { swal, swalConfirmDelete } from '../../utils/swal';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -81,6 +81,8 @@ const PIN_LETTER_OFFSET_X = -0.6;
 const POPUP_CLOSE_CLICK_GRACE_MS = 150;
 const GEOSEARCH_RESULT_LIMIT = 10;
 const SEARCH_BAR_RIGHT_GUTTER = 260;
+const DUPLICATE_RADIUS_M = 50;
+const NEARBY_LIMIT = 3;
 
 const markerIconCache = new Map();
 
@@ -610,13 +612,36 @@ const PoiPopupContent = ({ poi }) => {
   );
 };
 
-const MarkerPopupContent = ({ pin, onAddPin, onEdit, onDelete }) => {
+const MarkerPopupContent = ({ pin, tripId, onAddPin, onEdit, onDelete }) => {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(pin.name || '');
+  const [nearby, setNearby] = useState([]);
 
   useEffect(() => {
     if (!editing) setValue(pin.name || '');
   }, [pin.name, editing]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    tripPointService
+      .getNearby(tripId, {
+        lat: pin.latitude,
+        lng: pin.longitude,
+        excludeId: pin.id,
+        limit: NEARBY_LIMIT,
+      })
+      .then((items) => {
+        if (!cancelled) setNearby(items);
+      })
+      .catch(() => {
+        if (!cancelled) setNearby([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [tripId, pin.id, pin.latitude, pin.longitude]);
 
   const commit = () => {
     const trimmed = value.trim();
@@ -662,6 +687,18 @@ const MarkerPopupContent = ({ pin, onAddPin, onEdit, onDelete }) => {
         <dd>{dateFormatter.format(new Date(pin.createdAt))}</dd>
         <dt>Autor:</dt>
         <dd>{pin.userName || 'nieznany'}</dd>
+        {nearby.length > 0 && (
+          <>
+            <dt>Najbliższe pinezki:</dt>
+            <dd>
+              {nearby.map((item) => (
+                <div key={item.id}>
+                  {item.name?.trim() || 'Bez nazwy'} - {formatDistance(item.distanceMeters)}
+                </div>
+              ))}
+            </dd>
+          </>
+        )}
       </dl>
       <div className={styles.popupActions}>
         <button type="button" onClick={() => onAddPin(pin.latitude, pin.longitude)}>
@@ -674,6 +711,17 @@ const MarkerPopupContent = ({ pin, onAddPin, onEdit, onDelete }) => {
     </div>
   );
 };
+
+const confirmDuplicatePin = (nearest) =>
+  swal.fire({
+    title: 'Pinezka w pobliżu',
+    text: `W odległości ${formatDistance(nearest.distanceMeters)} jest już przystanek „${nearest.name?.trim() || 'Bez nazwy'}”. Dodać mimo to?`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Dodaj',
+    cancelButtonText: 'Anuluj',
+    reverseButtons: true,
+  });
 
 const EmptyContextMenu = ({ position, onAddPin, onClose }) => (
   <Popup
@@ -1459,6 +1507,16 @@ const PlannerPage = () => {
 
   const handleCreatePin = async (lat, lng, name = '') => {
     setContextMenuPos(null);
+
+    const [nearest] = await tripPointService
+      .getNearby(tripId, { lat, lng, radius: DUPLICATE_RADIUS_M, limit: 1 })
+      .catch(() => []);
+
+    if (nearest) {
+      const { isConfirmed } = await confirmDuplicatePin(nearest);
+      if (!isConfirmed) return;
+    }
+
     try {
       const created = await tripPointService.create(tripId, {
         name,
@@ -1674,6 +1732,7 @@ const PlannerPage = () => {
                 <Popup>
                   <MarkerPopupContent
                     pin={pin}
+                    tripId={tripId}
                     onAddPin={handleCreatePin}
                     onEdit={handleRename}
                     onDelete={() => confirmAndDelete(pin)}

@@ -1,6 +1,7 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using System.Security.Claims;
 using TripDrop.Application.TripPoints.Commands;
 using TripDrop.Application.TripPoints.Queries;
@@ -36,6 +37,38 @@ namespace TripDrop.Api.Controllers
             catch (UnauthorizedAccessException)
             {
                 return Forbid();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { Error = ex.Message });
+            }
+        }
+
+        [HttpGet("nearby")]
+        public async Task<IActionResult> GetNearby(
+            Guid tripId,
+            [FromQuery, BindRequired] double lat,
+            [FromQuery, BindRequired] double lng,
+            [FromQuery] Guid? excludeId,
+            [FromQuery] double? radius,
+            CancellationToken cancellationToken,
+            [FromQuery] int limit = 3)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                var nearby = await _mediator.Send(
+                    new GetNearbyTripPointsQuery(tripId, userId, lat, lng, excludeId, radius, limit),
+                    cancellationToken);
+                return Ok(nearby);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { Error = ex.Message });
             }
             catch (InvalidOperationException ex)
             {
