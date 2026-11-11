@@ -99,6 +99,9 @@ const markerColorForDay = (dayIndex) =>
 
 const pinLetter = (userName) => (userName || '?').trim().charAt(0).toUpperCase() || '?';
 
+const formatCoordinates = (lat, lng) =>
+  `${Math.abs(lat).toFixed(4)}° ${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lng).toFixed(4)}° ${lng >= 0 ? 'E' : 'W'}`;
+
 const getPinIcon = (dayIndex, userId, userName) => {
   const dayColor = markerColorForDay(dayIndex);
   const userColor = colorForUser(userId);
@@ -632,7 +635,7 @@ const PoiPopupContent = ({ poi, readOnly, onAddPin }) => {
   );
 };
 
-const MarkerPopupContent = ({ pin, tripId, readOnly, onAddPin, onEdit, onDelete }) => {
+const MarkerPopupContent = ({ pin, order, tripId, readOnly, onEdit, onDelete }) => {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(pin.name || '');
   const [nearby, setNearby] = useState([]);
@@ -685,38 +688,58 @@ const MarkerPopupContent = ({ pin, tripId, readOnly, onAddPin, onEdit, onDelete 
 
   return (
     <div ref={rootRef} className={styles.popup}>
-      {editing && !readOnly ? (
-        <input
-          type="text"
-          autoFocus
-          maxLength={MAX_PIN_NAME_LENGTH}
-          className={styles.popupNameInput}
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onBlur={commit}
-          onPointerDown={(e) => e.stopPropagation()}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') commit();
-            if (e.key === 'Escape') cancel();
-          }}
-        />
-      ) : (
-        <div
-          className={styles.popupName}
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (!readOnly) setEditing(true);
-          }}
-        >
-          {pin.name?.trim() || <em>Bez nazwy</em>}
+      <div className={styles.popupHeader}>
+        {order ? (
+          <span
+            className={styles.popupBadge}
+            style={{ background: markerColorForDay(pin.dayIndex) }}
+          >
+            {order}
+          </span>
+        ) : null}
+        <div className={styles.popupTitle}>
+          {editing && !readOnly ? (
+            <input
+              type="text"
+              autoFocus
+              maxLength={MAX_PIN_NAME_LENGTH}
+              className={styles.popupNameInput}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              onBlur={commit}
+              onPointerDown={(e) => e.stopPropagation()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commit();
+                if (e.key === 'Escape') cancel();
+              }}
+            />
+          ) : (
+            <div
+              className={styles.popupName}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!readOnly) setEditing(true);
+              }}
+            >
+              {pin.name?.trim() || <em>Bez nazwy</em>}
+            </div>
+          )}
+          {order ? (
+            <div className={styles.popupSub}>
+              Dzień {pin.dayIndex + 1} · punkt {order}
+            </div>
+          ) : null}
         </div>
-      )}
+      </div>
       <dl className={styles.popupMeta}>
         <dt>Dodano:</dt>
         <dd>{dateFormatter.format(new Date(pin.createdAt))}</dd>
         <dt>Autor:</dt>
-        <dd>{pin.userName || 'nieznany'}</dd>
+        <dd className={styles.popupAuthor}>
+          <span className={styles.popupAvatar}>{pinLetter(pin.userName)}</span>
+          {pin.userName || 'nieznany'}
+        </dd>
         {nearby.length > 0 && (
           <>
             <dt>Najbliżej:</dt>
@@ -732,9 +755,6 @@ const MarkerPopupContent = ({ pin, tripId, readOnly, onAddPin, onEdit, onDelete 
       </dl>
       {!readOnly && (
         <div className={styles.popupActions}>
-          <button type="button" onClick={() => onAddPin(pin.latitude, pin.longitude)}>
-            Dodaj pinezkę
-          </button>
           <button type="button" onClick={() => onDelete(pin.id)}>
             Usuń pinezkę
           </button>
@@ -762,9 +782,11 @@ const EmptyContextMenu = ({ position, onAddPin, onClose }) => (
     eventHandlers={{ remove: onClose }}
   >
     <div className={styles.popup}>
-      {position.name ? (
-        <div className={styles.popupName}>{position.name}</div>
-      ) : null}
+      <div className={styles.popupTitle}>
+        <div className={styles.popupEyebrow}>Nowe miejsce</div>
+        <div className={styles.popupName}>{position.name || 'Kliknięty punkt'}</div>
+        <div className={styles.popupHint}>{formatCoordinates(position.lat, position.lng)}</div>
+      </div>
       <div className={styles.popupActions}>
         <button
           type="button"
@@ -1040,6 +1062,8 @@ const PARTIAL_ROUTE_WARNING =
   'Nie można wyznaczyć całej trasy - część odcinków nie ma połączenia drogowego.';
 const ROUTE_DETAILS_MIN_HEIGHT = 140;
 const ROUTE_DETAILS_MAX_RATIO = 0.6;
+const ROUTE_DETAILS_MIN_WIDTH = 200;
+const ROUTE_DETAILS_MAX_WIDTH_RATIO = 0.4;
 
 const formatDistance = (meters) => {
   if (meters < 1000) return `${Math.round(meters)} m`;
@@ -1076,7 +1100,7 @@ const RouteError = ({ message }) => (
   </div>
 );
 
-const RouteDetailsBox = ({ details, height, onResize, onClose }) => {
+const RouteDetailsBox = ({ details, height, width, onResize, onResizeWidth, onClose }) => {
   const boxRef = useRef(null);
 
   const handleResizeStart = useCallback(
@@ -1087,12 +1111,17 @@ const RouteDetailsBox = ({ details, height, onResize, onClose }) => {
 
       event.preventDefault();
 
+      const startX = event.clientX;
       const startY = event.clientY;
+      const startWidth = box.offsetWidth;
       const startHeight = box.offsetHeight;
       const limit = (box.parentElement?.clientHeight ?? 0) * ROUTE_DETAILS_MAX_RATIO;
+      const widthLimit = (box.parentElement?.clientWidth ?? 0) * ROUTE_DETAILS_MAX_WIDTH_RATIO;
 
       const handleMove = (moveEvent) => {
+        const nextWidth = startWidth + (startX - moveEvent.clientX);
         const next = startHeight + (startY - moveEvent.clientY);
+        onResizeWidth(Math.min(Math.max(nextWidth, ROUTE_DETAILS_MIN_WIDTH), widthLimit));
         onResize(Math.min(Math.max(next, ROUTE_DETAILS_MIN_HEIGHT), limit));
       };
 
@@ -1106,7 +1135,7 @@ const RouteDetailsBox = ({ details, height, onResize, onClose }) => {
       window.addEventListener('pointerup', handleEnd);
       window.addEventListener('pointercancel', handleEnd);
     },
-    [onResize]
+    [onResize, onResizeWidth]
   );
 
   if (!details) return null;
@@ -1117,12 +1146,15 @@ const RouteDetailsBox = ({ details, height, onResize, onClose }) => {
     <div
       ref={boxRef}
       className={`${styles.routeDetails} ${height ? styles.routeDetailsResized : ''}`}
-      style={height ? { height: `${height}px` } : undefined}
+      style={{
+        height: height ? `${height}px` : undefined,
+        width: width ? `${width}px` : undefined,
+      }}
     >
       <div
         className={styles.routeDetailsHandle}
         onPointerDown={handleResizeStart}
-        title="Przeciągnij, aby zmienić wysokość"
+        title="Przeciągnij, aby zmienić rozmiar"
       />
       <div className={styles.routeDetailsHeader}>
         <span
@@ -1299,6 +1331,7 @@ const PlannerPage = () => {
   const [hiddenDayKeys, setHiddenDayKeys] = useState(() => new Set());
   const [routeDetails, setRouteDetails] = useState(null);
   const [routeDetailsHeight, setRouteDetailsHeight] = useState(null);
+  const [routeDetailsWidth, setRouteDetailsWidth] = useState(null);
   const [isLockBusy, setIsLockBusy] = useState(false);
 
   useEffect(() => () => {
@@ -1381,6 +1414,15 @@ const PlannerPage = () => {
     return groups;
   }, [pins, buckets]);
 
+  const pinOrderById = useMemo(() => {
+    const orders = new Map();
+    Object.entries(pinsByBucket).forEach(([key, list]) => {
+      if (key === UNASSIGNED_KEY) return;
+      list.forEach((pin, index) => orders.set(pin.id, index + 1));
+    });
+    return orders;
+  }, [pinsByBucket]);
+
   const exportTrip = useMemo(() => {
     const toPoint = (pin) => ({ name: pin.name?.trim() || 'Bez nazwy', lat: pin.latitude, lng: pin.longitude });
     return {
@@ -1443,7 +1485,8 @@ const PlannerPage = () => {
   const clearRouteDetails = useCallback(() => {
     setRouteDetails(null);
     setRouteDetailsHeight(null);
-  }, [setRouteDetails, setRouteDetailsHeight]);
+    setRouteDetailsWidth(null);
+  }, [setRouteDetails, setRouteDetailsHeight, setRouteDetailsWidth]);
 
   const handleRoutesComputed = useCallback((dayKey, data) => {
     setRouteDetails((prev) => (prev?.dayKey === dayKey ? null : prev));
@@ -1837,9 +1880,9 @@ const PlannerPage = () => {
                 <Popup>
                   <MarkerPopupContent
                     pin={pin}
+                    order={pinOrderById.get(pin.id)}
                     tripId={tripId}
                     readOnly={isPlanLocked}
-                    onAddPin={handleCreatePin}
                     onEdit={handleRename}
                     onDelete={() => confirmAndDelete(pin)}
                   />
@@ -1867,7 +1910,9 @@ const PlannerPage = () => {
           <RouteDetailsBox
             details={routeDetails}
             height={routeDetailsHeight}
+            width={routeDetailsWidth}
             onResize={setRouteDetailsHeight}
+            onResizeWidth={setRouteDetailsWidth}
             onClose={clearRouteDetails}
           />
         </Panel>

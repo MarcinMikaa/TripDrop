@@ -152,16 +152,24 @@ const routeDetails = (day, result) => ({
 const buildPopupContent = (day, leg, result, line, selectRef) => {
   const container = L.DomUtil.create('div', styles.popup);
 
-  const title = L.DomUtil.create('div', styles.popupName, container);
+  const band = L.DomUtil.create('div', styles.popupBand, container);
+  const eyebrow = L.DomUtil.create('div', styles.popupEyebrow, band);
+  eyebrow.textContent = `Dzień ${Number(day.key) + 1} · odcinek ${leg.index + 1} → ${leg.index + 2}`;
+  const title = L.DomUtil.create('div', styles.popupName, band);
   title.textContent = day.label;
 
-  const actions = L.DomUtil.create('div', styles.popupActions, container);
-  const segmentBtn = L.DomUtil.create('button', '', actions);
-  segmentBtn.type = 'button';
-  segmentBtn.textContent = 'Dane odcinka';
-  const routeBtn = L.DomUtil.create('button', '', actions);
-  routeBtn.type = 'button';
-  routeBtn.textContent = 'Dane całej trasy';
+  const options = L.DomUtil.create('div', styles.popupOptions, container);
+
+  const createOption = (label, hint) => {
+    const button = L.DomUtil.create('button', styles.popupOption, options);
+    button.type = 'button';
+    L.DomUtil.create('span', styles.popupOptionTitle, button).textContent = label;
+    L.DomUtil.create('span', styles.popupHint, button).textContent = hint;
+    return button;
+  };
+
+  const segmentBtn = createOption('Dane odcinka', 'Tylko zaznaczony fragment');
+  const routeBtn = createOption('Dane całej trasy', 'Cała trasa tego dnia');
 
   L.DomEvent.on(segmentBtn, 'click', (event) => {
     L.DomEvent.stop(event);
