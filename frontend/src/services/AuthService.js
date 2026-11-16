@@ -1,5 +1,10 @@
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5206';
 
+const readError = async (res, fallback) => {
+  const body = await res.json().catch(() => ({}));
+  return new Error(body.error || body.Error || body.message || fallback);
+};
+
 export const authService = {
   register: async (email, username, password) => {
     const res = await fetch(`${API_BASE}/api/users/register`, {
@@ -8,11 +13,8 @@ export const authService = {
       body: JSON.stringify({ email, username, password }),
     });
 
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.Error || `Błąd rejestracji: ${res.status}`);
-    }
-    return res.json();
+    if (!res.ok) throw await readError(res, `Błąd rejestracji: ${res.status}`);
+    return res.json().catch(() => ({}));
   },
 
   login: async (email, password) => {
@@ -22,12 +24,18 @@ export const authService = {
       body: JSON.stringify({ email, password }),
     });
 
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.Error || 'Nieprawidłowy email lub hasło.');
-    }
-
+    if (!res.ok) throw await readError(res, 'Nieprawidłowy e-mail lub hasło.');
     return res.json();
+  },
+
+  checkUsername: async (username, { signal } = {}) => {
+    const res = await fetch(`${API_BASE}/api/users/username-available?username=${encodeURIComponent(username)}`, {
+      signal,
+    });
+
+    if (!res.ok) return null;
+    const data = await res.json().catch(() => null);
+    return typeof data?.available === 'boolean' ? data.available : null;
   },
 
   logout: () => {},
