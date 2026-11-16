@@ -7,6 +7,7 @@ namespace TripDrop.Domain.Repositories
         Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken);
         Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
         Task<IEnumerable<User>> SearchByUsernameAsync(string searchTerm, Guid excludeUserId, CancellationToken cancellationToken);
+        Task<bool> UsernameExistsAsync(string username, CancellationToken cancellationToken);
         Task AddAsync(User user, CancellationToken cancellationToken);
         Task SaveChangesAsync(CancellationToken cancellationToken);
     }

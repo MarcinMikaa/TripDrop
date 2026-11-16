@@ -1,4 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Npgsql;
+using TripDrop.Application.Common.Exceptions;
 using TripDrop.Domain.Entities;
 using TripDrop.Domain.Repositories;
 using TripDrop.Infrastructure.Persistence;
@@ -26,7 +28,19 @@ namespace TripDrop.Infrastructure.Repositories
 
         public async Task SaveChangesAsync(CancellationToken cancellationToken)
         {
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } pg)
+            {
+                throw pg.ConstraintName switch
+                {
+                    TripDropDbContext.UsernameUniqueIndex => new ConflictException("Ta nazwa użytkownika jest już zajęta."),
+                    TripDropDbContext.EmailUniqueIndex => new ConflictException("Ten e-mail jest już zajęty."),
+                    _ => new ConflictException("Taki użytkownik już istnieje."),
+                };
+            }
         }
 
         public async Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
@@ -39,6 +53,12 @@ namespace TripDrop.Infrastructure.Repositories
             return await _dbContext.Users
                 .Where(u => u.Id != excludeUserId && u.Username.ToLower().Contains(searchTerm.ToLower()))
                 .ToListAsync(cancellationToken);
+        }
+
+        public async Task<bool> UsernameExistsAsync(string username, CancellationToken cancellationToken)
+        {
+            var normalized = username.ToLowerInvariant();
+            return await _dbContext.Users.AnyAsync(u => u.Username.ToLower() == normalized, cancellationToken);
         }
     }
 }
