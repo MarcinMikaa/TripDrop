@@ -1,6 +1,7 @@
 ﻿using MediatR;
-using TripDrop.Domain.Repositories;
 using Supabase.Gotrue;
+using TripDrop.Application.Common.Exceptions;
+using TripDrop.Domain.Repositories;
 
 namespace TripDrop.Application.Users.Commands
 {
@@ -17,47 +18,74 @@ namespace TripDrop.Application.Users.Commands
 
         public async Task<Guid> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
         {
-            var cleanEmail = request.Email?.Trim().ToLower();
-            var cleanUsername = request.Username?.Trim();
+            var email = UserRules.NormalizeEmail(request.Email);
+            var username = UserRules.NormalizeUsername(request.Username);
 
-            if (string.IsNullOrWhiteSpace(cleanUsername) || cleanUsername.Length < 3)
-                throw new Exception("Nazwa użytkownika musi mieć minimum 3 znaki.");
+            var validationError = UserRules.ValidateEmail(email)
+                ?? UserRules.ValidateUsername(username)
+                ?? UserRules.ValidatePassword(request.Password);
 
-            if (cleanUsername.Length > 30)
-                throw new Exception("Nazwa użytkownika może mieć maksymalnie 30 znaków.");
+            if (validationError is not null)
+                throw new RequestValidationException(validationError);
 
-            if (!System.Text.RegularExpressions.Regex.IsMatch(cleanUsername, @"^[a-zA-Z0-9_]+$"))
-                throw new Exception("Nazwa użytkownika może zawierać tylko litery, cyfry i podkreślnik.");
+            if (await _userRepository.GetByEmailAsync(email, cancellationToken) is not null)
+                throw new ConflictException("Ten e-mail jest już zajęty.");
 
-            var existingUser = await _userRepository.GetByEmailAsync(cleanEmail, cancellationToken);
-            if (existingUser != null)
-            {
-                throw new Exception("Email jest już zajęty.");
-            }
+            if (await _userRepository.UsernameExistsAsync(username, cancellationToken))
+                throw new ConflictException("Ta nazwa użytkownika jest już zajęta.");
 
+            var externalUserId = await SignUpAsync(email, username, request.Password);
+
+            var newUser = new Domain.Entities.User(externalUserId, email, username);
+
+            await _userRepository.AddAsync(newUser, CancellationToken.None);
+            await _userRepository.SaveChangesAsync(CancellationToken.None);
+
+            return newUser.Id;
+        }
+
+        private async Task<Guid> SignUpAsync(string email, string username, string password)
+        {
             var options = new SignUpOptions
             {
                 Data = new Dictionary<string, object>
                 {
-                    { "username", request.Username }
+                    { "username", username }
                 }
             };
 
-            var session = await _supabaseClient.Auth.SignUp(cleanEmail, request.Password, options);
-
-            if (session?.User?.Id == null)
+            string? externalId;
+            try
             {
-                throw new Exception("Błąd autoryzacji po stronie dostawcy tożsamości.");
+                var session = await _supabaseClient.Auth.SignUp(email, password, options);
+                externalId = session?.User?.Id;
+            }
+            catch (Exception ex)
+            {
+                throw MapSignUpError(ex);
             }
 
-            var externalUserId = Guid.Parse(session.User.Id);
+            if (!Guid.TryParse(externalId, out var userId))
+                throw new RequestValidationException("Nie udało się założyć konta. Spróbuj ponownie.");
 
-            var newUser = new Domain.Entities.User(externalUserId, cleanEmail, cleanUsername);
+            return userId;
+        }
 
-            await _userRepository.AddAsync(newUser, cancellationToken);
-            await _userRepository.SaveChangesAsync(cancellationToken);
+        private static Exception MapSignUpError(Exception ex)
+        {
+            var message = ex.Message;
 
-            return newUser.Id;
+            if (message.Contains("already registered", StringComparison.OrdinalIgnoreCase))
+                return new ConflictException("Ten e-mail jest już zajęty.");
+
+            if (message.Contains("rate limit", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("security purposes", StringComparison.OrdinalIgnoreCase))
+                return new RequestValidationException("Za dużo prób rejestracji. Spróbuj ponownie za kilka minut.");
+
+            if (message.Contains("password", StringComparison.OrdinalIgnoreCase))
+                return new RequestValidationException("Hasło nie spełnia wymagań. Użyj co najmniej 8 znaków, wielkiej litery i cyfry.");
+
+            return new RequestValidationException("Nie udało się założyć konta. Spróbuj ponownie.");
         }
     }
 }

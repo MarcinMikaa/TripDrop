@@ -1,4 +1,4 @@
-
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -38,6 +38,20 @@ namespace TripDrop.Api
             builder.Services.AddScoped<IPublishedTripRepository, PublishedTripRepository>();
             builder.Services.AddProblemDetails();
             builder.Services.AddExceptionHandler<ApiExceptionHandler>();
+
+            builder.Services.AddRateLimiter(options =>
+            {
+                options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+                options.AddPolicy(RateLimitPolicies.UsernameCheck, httpContext =>
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                        _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = 30,
+                            Window = TimeSpan.FromMinutes(1),
+                            QueueLimit = 0,
+                        }));
+            });
 
             AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
@@ -80,10 +94,7 @@ namespace TripDrop.Api
                 };
             });
 
-            // Add services to the container.
-
             builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
             {
@@ -111,9 +122,11 @@ namespace TripDrop.Api
                     }
                 });
             });
+
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
+            app.UseExceptionHandler();
+
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
@@ -124,10 +137,10 @@ namespace TripDrop.Api
 
             app.UseHttpsRedirection();
 
+            app.UseRateLimiter();
+
             app.UseAuthentication();
             app.UseAuthorization();
-
-            app.UseExceptionHandler();
 
             app.MapControllers();
 

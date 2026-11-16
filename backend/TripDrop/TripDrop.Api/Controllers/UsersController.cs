@@ -1,5 +1,8 @@
 ﻿using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using TripDrop.Api.Infrastructure;
 using TripDrop.Application.Users.Commands;
 using TripDrop.Application.Users.Queries;
 
@@ -16,21 +19,24 @@ namespace TripDrop.Api.Controllers
             _mediator = mediator;
         }
 
+        [AllowAnonymous]
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterUserCommand command)
+        public async Task<IActionResult> Register([FromBody] RegisterUserCommand command, CancellationToken cancellationToken)
         {
-            try
-            {
-                var userId = await _mediator.Send(command);
-
-                return Ok(new { UserId = userId });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { Error = ex.Message });
-            }
+            var userId = await _mediator.Send(command, cancellationToken);
+            return Ok(new { UserId = userId });
         }
 
+        [AllowAnonymous]
+        [HttpGet("username-available")]
+        [EnableRateLimiting(RateLimitPolicies.UsernameCheck)]
+        public async Task<IActionResult> UsernameAvailable([FromQuery] string? username, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(new CheckUsernameAvailabilityQuery(username), cancellationToken);
+            return Ok(result);
+        }
+
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginUserQuery query)
         {

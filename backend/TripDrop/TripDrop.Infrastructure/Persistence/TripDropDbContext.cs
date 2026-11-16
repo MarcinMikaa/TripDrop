@@ -1,14 +1,13 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using TripDrop.Domain.Entities;
-using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
 using TripDrop.Domain.Entities;
 
 namespace TripDrop.Infrastructure.Persistence
 {
     public class TripDropDbContext : DbContext
     {
+        public const string UsernameUniqueIndex = "IX_Users_Username_Lower";
+        public const string EmailUniqueIndex = "IX_Users_Email";
+
         public TripDropDbContext(DbContextOptions<TripDropDbContext> options) : base(options) { }
 
         public DbSet<Trip> Trips => Set<Trip>();
@@ -23,15 +22,15 @@ namespace TripDrop.Infrastructure.Persistence
         {
             base.OnModelCreating(modelBuilder);
 
-            modelBuilder.Entity<Trip>(entity =>
+            modelBuilder.Entity<User>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Email).IsRequired().HasMaxLength(256);
+                entity.Property(e => e.Username).IsRequired().HasMaxLength(30);
 
-                entity.HasOne(e => e.Owner)
-                    .WithMany(u => u.OwnedTrips)
-                    .HasForeignKey(e => e.OwnerId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => e.Email)
+                    .IsUnique()
+                    .HasDatabaseName(EmailUniqueIndex);
             });
 
             modelBuilder.Entity<Friendship>(entity =>
@@ -63,6 +62,11 @@ namespace TripDrop.Infrastructure.Persistence
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.StartDate).IsRequired(false);
                 entity.Property(e => e.EndDate).IsRequired(false);
+
+                entity.Property(e => e.PlanLockedAt)
+                    .HasConversion(
+                        v => v,
+                        v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v);
 
                 entity.HasOne(e => e.Owner)
                     .WithMany(u => u.OwnedTrips)
