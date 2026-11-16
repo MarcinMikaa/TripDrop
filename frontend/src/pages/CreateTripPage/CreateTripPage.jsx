@@ -1,278 +1,213 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { tripService } from '../../services/tripService';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { tripService } from '../../services/TripService';
 import { friendshipService } from '../../services/FriendshipService';
-import { swalError } from '../../utils/swal';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import useAuth from '../../hooks/useAuth';
+import TripPanel from '../../components/TripPanel/TripPanel';
+import TripDetailsFields from '../../components/TripPanel/TripDetailsFields';
+import TripPreviewCard from '../../components/TripPanel/TripPreviewCard';
+import ParticipantPicker from '../../components/TripPanel/ParticipantPicker';
+import { emptyTripForm, formToPayload, validateTripForm } from '../../components/TripPanel/tripForm';
+import panel from '../../components/TripPanel/TripPanel.module.scss';
 import styles from './CreateTripPage.module.scss';
 
-const STEPS = ['Podstawowe informacje', 'Uczestnicy', 'Podsumowanie'];
+const DETAILS_FORM_ID = 'create-trip-details';
+
+const STEPS = [
+  { key: 'details', label: 'Podstawy', step: 1 },
+  { key: 'people', label: 'Uczestnicy', step: 2 },
+];
+
+const ArrowRight = () => (
+  <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" className={panel.icon}>
+    <path d="M5 12h14M12 5l7 7-7 7" />
+  </svg>
+);
+
+const ArrowLeft = () => (
+  <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" className={panel.icon}>
+    <path d="M19 12H5M12 19l-7-7 7-7" />
+  </svg>
+);
 
 const CreateTripPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  const [step, setStep] = useState(0);
-  const [friends, setFriends] = useState([]);
-  const [selected, setSelected] = useState(new Set());
+  const [step, setStep] = useState('details');
+  const [form, setForm] = useState(emptyTripForm);
+  const [showErrors, setShowErrors] = useState(false);
+  const [friends, setFriends] = useState({ status: 'loading', items: [] });
+  const [selected, setSelected] = useState(() => new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState({});
-
-  const [form, setForm] = useState({
-    name: '',
-    description: '',
-    startDate: '',
-    endDate: '',
-  });
+  const [submitError, setSubmitError] = useState(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     friendshipService
       .getFriends()
-      .then((data) => setFriends(data))
-      .catch(() => {});
+      .then((items) => {
+        if (!cancelled) setFriends({ status: 'ready', items });
+      })
+      .catch(() => {
+        if (!cancelled) setFriends({ status: 'error', items: [] });
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const handleFormChange = (e) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  const validation = validateTripForm(form, { datesRequired: true });
+  const detailsValid = Object.keys(validation).length === 0;
+  const errors = showErrors ? validation : {};
+
+  const handleFieldChange = (name, value) => {
+    setForm((prev) => ({ ...prev, [name]: value }));
+    if (submitError) setSubmitError(null);
   };
 
-  const toggleParticipant = (id) => {
+  const goToPeople = () => {
+    setShowErrors(true);
+    if (!detailsValid) return;
+    setStep('people');
+  };
+
+  const handleDetailsSubmit = (e) => {
+    e.preventDefault();
+    goToPeople();
+  };
+
+  const handleTabChange = (key) => {
+    if (key === 'people') goToPeople();
+    else setStep('details');
+  };
+
+  const toggleFriend = (friend) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(friend.id)) next.delete(friend.id);
+      else next.add(friend.id);
       return next;
     });
   };
 
-  const handleNext = () => {
-    if (step === 0) {
-      const errors = {};
-      if (!form.name.trim()) errors.name = 'Nazwa wycieczki jest wymagana.';
-      if (!form.startDate) errors.startDate = 'Data rozpoczęcia jest wymagana.';
-      if (!form.endDate) errors.endDate = 'Data zakończenia jest wymagana.';
-      if (form.startDate && form.endDate && form.startDate > form.endDate)
-        errors.endDate = 'Data końcowa nie może być wcześniejsza niż startowa.';
-
-      if (Object.keys(errors).length > 0) {
-        setFieldErrors(errors);
-        return;
-      }
-      setFieldErrors({});
-    }
-    setStep(prev => prev + 1);
-  };
-
-  const handleBack = () => setStep(prev => prev - 1);
-
   const handleSubmit = async () => {
+    if (isSubmitting) return;
+    if (!detailsValid) {
+      setShowErrors(true);
+      setStep('details');
+      return;
+    }
+
     setIsSubmitting(true);
+    setSubmitError(null);
     try {
-      const payload = {
-        name: form.name.trim(),
-        description: form.description.trim() || null,
-        startDate: form.startDate || null,
-        endDate: form.endDate || null,
-        participantIds: Array.from(selected),
-      };
-      const data = await tripService.create(payload);
-      navigate(`/planner/${data.id}`);
+      const created = await tripService.create({ ...formToPayload(form), participantIds: [...selected] });
+      navigate(`/planner/${created.id}`);
     } catch (err) {
-      await swalError('Błąd', err.message);
-    } finally {
+      setSubmitError(err.message || 'Nie udało się utworzyć wyprawy. Spróbuj ponownie.');
       setIsSubmitting(false);
     }
   };
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('pl-PL', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
-  };
+  const chosenFriends = friends.items.filter((friend) => selected.has(friend.id));
+  const people = [...(user?.id ? [{ id: user.id, username: user.username }] : []), ...chosenFriends];
+  const names = chosenFriends.map((friend) => `@${friend.username}`).join(', ');
 
-  const selectedFriends = friends.filter((f) => selected.has(f.id));
+  const tabs = STEPS.map((item) => ({
+    ...item,
+    done: item.key === 'details' && step !== 'details' && detailsValid,
+  }));
+
+  let peopleSummary = 'Na razie tylko Ty. Znajomych dodasz też później w Zarządzaj.';
+  if (chosenFriends.length === 1) peopleSummary = `Zaproszenie dostanie ${names}.`;
+  if (chosenFriends.length > 1) peopleSummary = `Zaproszenie dostaną ${names}.`;
+
+  const footerActions =
+    step === 'details' ? (
+      <>
+        <Link to="/trips" className={panel.ghostBtn}>
+          Anuluj
+        </Link>
+        <button type="submit" form={DETAILS_FORM_ID} className={panel.primaryBtn}>
+          Dalej: uczestnicy
+          <ArrowRight />
+        </button>
+      </>
+    ) : (
+      <>
+        <button type="button" className={panel.ghostBtn} onClick={() => setStep('details')} disabled={isSubmitting}>
+          <ArrowLeft />
+          Wstecz
+        </button>
+        <button type="button" className={panel.primaryBtn} onClick={handleSubmit} disabled={isSubmitting}>
+          {isSubmitting ? 'Tworzenie...' : 'Utwórz i otwórz planer'}
+          {!isSubmitting && <ArrowRight />}
+        </button>
+      </>
+    );
 
   return (
-    <div className={styles.wrapper}>
-      <h1>Nowa wycieczka</h1>
+    <TripPanel
+      eyebrow="Nowa wyprawa"
+      title="Dokąd tym razem?"
+      tabs={tabs}
+      activeTab={step}
+      onTabChange={handleTabChange}
+      tabsLabel="Kroki tworzenia wyprawy"
+      currentType="step"
+      aside={
+        <TripPreviewCard
+          label="Tak będzie wyglądać na liście"
+          name={form.name}
+          startDate={form.startDate}
+          endDate={form.endDate}
+          people={people}
+          pointCount={0}
+        />
+      }
+      alert={submitError}
+      footerNote={step === 'details' ? 'Krok 1 z 2' : 'Krok 2 z 2'}
+      footerActions={footerActions}>
+      {step === 'details' ? (
+        <form id={DETAILS_FORM_ID} onSubmit={handleDetailsSubmit} noValidate>
+          <TripDetailsFields idPrefix="create-trip" value={form} errors={errors} onChange={handleFieldChange} />
+        </form>
+      ) : (
+        <>
+          <p className={panel.intro}>Zaznacz znajomych. Zaproszenie dostaną od razu po utworzeniu wyprawy.</p>
 
-      <div className={styles.steps}>
-        {STEPS.map((label, i) => (
-          <div key={i} className={styles.stepGroup}>
-            <div className={styles.step}>
-              <div className={`${styles.stepNum} ${i < step ? styles.done : i === step ? styles.active : styles.idle}`}>
-                {i < step ? <FontAwesomeIcon icon="check" /> : i + 1}
-              </div>
-              <span className={`${styles.stepLabel} ${i === step ? styles.activeLabel : ''}`}>{label}</span>
-            </div>
-            {i < STEPS.length - 1 && <div className={styles.stepLine} />}
-          </div>
-        ))}
-      </div>
+          {friends.status === 'loading' && <p className={panel.hint}>Wczytywanie znajomych...</p>}
 
-      {step === 0 && (
-        <div className={styles.card}>
-          <p className={styles.cardTitle}>Podstawowe informacje</p>
-
-          <div className={styles.field}>
-            <label htmlFor="name">Nazwa wycieczki *</label>
-            <input
-              id="name"
-              name="name"
-              type="text"
-              placeholder="np. Majówka w Tatrach"
-              value={form.name}
-              onChange={handleFormChange}
-              className={fieldErrors.endDate ? 'input-error' : ''}
-              maxLength={200}
-            />
-            {fieldErrors.name && <p className="field-error">{fieldErrors.name}</p>}
-          </div>
-
-          <div className={styles.field}>
-            <label htmlFor="description">Opis (opcjonalny)</label>
-            <textarea
-              id="description"
-              name="description"
-              placeholder="Krótki opis planu wycieczki..."
-              value={form.description}
-              onChange={handleFormChange}
-              rows={3}
-            />
-          </div>
-
-          <div className={styles.dates}>
-            <div className={styles.field}>
-              <label htmlFor="startDate">Data rozpoczęcia *</label>
-              <input
-                id="startDate"
-                name="startDate"
-                type="date"
-                value={form.startDate}
-                onChange={handleFormChange} 
-                className={fieldErrors.startDate ? 'input-error' : ''}
-              />
-              {fieldErrors.startDate && <p className="field-error">{fieldErrors.startDate}</p>}
-            </div>
-            <div className={styles.field}>
-              <label htmlFor="endDate">Data zakończenia *</label>
-              <input
-                id="endDate"
-                name="endDate"
-                type="date"
-                value={form.endDate}
-                onChange={handleFormChange}
-                className={fieldErrors.name ? 'input-error' : ''}
-              />
-              {fieldErrors.endDate && <p className="field-error">{fieldErrors.endDate}</p>}
-            </div>
-          </div>
-
-          <div className={styles.actions}>
-            <span />
-            <button className={styles.btnNext} onClick={handleNext}>
-              Dalej
-            </button>
-          </div>
-        </div>
-      )}
-
-      {step === 1 && (
-        <div className={styles.card}>
-          <p className={styles.cardTitle}>Dodaj uczestników</p>
-
-          {friends.length === 0 && (
-            <p className={styles.noFriends}>
-              Nie masz jeszcze znajomych. Dodaj ich w sekcji{' '}
-              <span className={styles.link} onClick={() => navigate('/friends')}>
-                Znajomi
-              </span>
-              .
+          {friends.status === 'error' && (
+            <p className={panel.error}>
+              Nie udało się wczytać znajomych. Wyprawę utworzysz i tak, a osoby dodasz później.
             </p>
           )}
 
-          {friends.map((f) => (
-            <div key={f.id} className={styles.friendRow}>
-              <div className={styles.friendAvatar}>{f.username[0].toUpperCase()}</div>
-              <span className={styles.friendName}>{f.username}</span>
-              <button
-                className={`${styles.addBtn} ${selected.has(f.id) ? styles.added : ''}`}
-                onClick={() => toggleParticipant(f.id)}>
-                {selected.has(f.id) ? (
-                  <>
-                    <FontAwesomeIcon icon="check" /> Dodano
-                  </>
-                ) : (
-                  'Dodaj'
-                )}
-              </button>
-            </div>
-          ))}
-
-          <div className={styles.actions}>
-            <button className={styles.btnBack} onClick={handleBack}>
-              Wstecz
-            </button>
-            <button className={styles.btnNext} onClick={handleNext}>
-              Dalej
-            </button>
-          </div>
-        </div>
-      )}
-
-      {step === 2 && (
-        <div className={styles.card}>
-          <p className={styles.cardTitle}>Podsumowanie</p>
-
-          <div className={styles.summaryRow}>
-            <span className={styles.summaryLabel}>Nazwa</span>
-            <span className={styles.summaryVal}>{form.name}</span>
-          </div>
-
-          {form.description && (
-            <div className={styles.summaryRow}>
-              <span className={styles.summaryLabel}>Opis</span>
-              <span className={styles.summaryVal}>{form.description}</span>
-            </div>
+          {friends.status === 'ready' && (
+            <ParticipantPicker
+              friends={friends.items}
+              selectedIds={selected}
+              onToggle={toggleFriend}
+              emptyText={
+                <>
+                  Nie masz jeszcze znajomych.{' '}
+                  <Link to="/friends" className={styles.inlineLink}>
+                    Dodaj ich w Znajomych
+                  </Link>
+                  , a do wyprawy zaprosisz ich później.
+                </>
+              }
+            />
           )}
 
-          <div className={styles.summaryRow}>
-            <span className={styles.summaryLabel}>Data rozpoczęcia</span>
-            <span className={styles.summaryVal}>{formatDate(form.startDate)}</span>
-          </div>
-
-          <div className={styles.summaryRow}>
-            <span className={styles.summaryLabel}>Data zakończenia</span>
-            <span className={styles.summaryVal}>{formatDate(form.endDate)}</span>
-          </div>
-
-          <div className={styles.summaryRow}>
-            <span className={styles.summaryLabel}>Uczestnicy</span>
-            <div className={styles.chips}>
-              {selectedFriends.length === 0 ? (
-                <span className={styles.summaryVal}>Tylko ty</span>
-              ) : (
-                selectedFriends.map((f) => (
-                  <span key={f.id} className={styles.chip}>
-                    {f.username}
-                  </span>
-                ))
-              )}
-            </div>
-          </div>
-
-          <div className={styles.actions}>
-            <button className={styles.btnBack} onClick={handleBack}>
-              Wstecz
-            </button>
-            <button className={styles.btnSubmit} onClick={handleSubmit} disabled={isSubmitting}>
-              {isSubmitting ? 'Tworzenie...' : 'Utwórz wycieczkę'}
-            </button>
-          </div>
-        </div>
+          {friends.status === 'ready' && friends.items.length > 0 && <p className={panel.hint}>{peopleSummary}</p>}
+        </>
       )}
-    </div>
+    </TripPanel>
   );
 };
 

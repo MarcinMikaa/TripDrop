@@ -43,18 +43,26 @@
 }
 
 .secondaryBtn {
-  padding: 8px 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1.5px solid #cfc6b8;
+  border-radius: 999px;
   background: transparent;
-  color: var(--text);
+  color: var(--obsidian);
   font: inherit;
-  font-size: 0.875rem;
+  font-size: 0.9rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 
   &:hover:not(:disabled) {
-    background: var(--stone);
+    border-color: var(--obsidian);
+    background: #efe9df;
   }
 
   &:disabled {
@@ -63,7 +71,7 @@
   }
 
   &:focus-visible {
-    outline: 2px solid var(--steel);
+    outline: 2px solid var(--obsidian);
     outline-offset: 2px;
   }
 }
@@ -81,10 +89,10 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 16px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  padding: 18px;
+  background: #fdfcfa;
+  border: 1px solid #ebe5dc;
+  border-radius: 16px;
 }
 
 .statusHeader {
@@ -109,8 +117,8 @@
 }
 
 .badgeActive {
-  background: rgba(91, 143, 168, 0.15);
-  color: #2f5f75;
+  background: #efe5d6;
+  color: #7d5a2c;
 }
 
 .badgeNeutral {
@@ -203,7 +211,7 @@
   input[type='checkbox'] {
     width: 16px;
     height: 16px;
-    accent-color: var(--steel);
+    accent-color: var(--obsidian);
   }
 }
 
@@ -312,7 +320,7 @@
     color 0.15s;
 
   &:hover:not(:disabled) {
-    border-color: var(--steel);
+    border-color: var(--obsidian);
   }
 
   &:disabled {
@@ -321,7 +329,7 @@
   }
 
   &:focus-visible {
-    outline: 2px solid var(--steel);
+    outline: 2px solid var(--obsidian);
     outline-offset: 2px;
   }
 }
@@ -349,7 +357,7 @@
 
   input[type='radio'] {
     margin-top: 3px;
-    accent-color: var(--steel);
+    accent-color: var(--obsidian);
   }
 }
 
@@ -384,11 +392,12 @@
 }
 
 .visibilitySelected {
-  border-color: var(--steel);
-  box-shadow: 0 0 0 1px var(--steel);
+  border-color: var(--obsidian);
+  box-shadow: 0 0 0 1px var(--obsidian);
+  background: #fdfcfa;
 
   svg {
-    color: var(--steel);
+    color: #7d5a2c;
   }
 }
 
