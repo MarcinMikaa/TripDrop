@@ -8,11 +8,16 @@ namespace TripDrop.Application.Trips.Queries
     {
         private readonly ITripRepository _repository;
         private readonly IPublishedTripRepository _publications;
+        private readonly ITripPointRepository _points;
 
-        public GetTripsQueryHandler(ITripRepository repository, IPublishedTripRepository publications)
+        public GetTripsQueryHandler(
+            ITripRepository repository,
+            IPublishedTripRepository publications,
+            ITripPointRepository points)
         {
             _repository = repository;
             _publications = publications;
+            _points = points;
         }
 
         public async Task<IEnumerable<TripDto>> Handle(GetTripsQuery request, CancellationToken cancellationToken)
@@ -23,13 +28,24 @@ namespace TripDrop.Application.Trips.Queries
                 .Select(t => TripMapper.ToDto(t, request.CurrentUserId))
                 .ToList();
 
-            var visibilities = await _publications.GetActiveVisibilitiesAsync(
-                dtos.Select(d => d.Id).ToList(), cancellationToken);
+            if (dtos.Count == 0) return dtos;
+
+            var tripIds = dtos.Select(d => d.Id).ToList();
+
+            var visibilities = await _publications.GetActiveVisibilitiesAsync(tripIds, cancellationToken);
+            var points = await _points.GetByTripIdsAsync(tripIds, cancellationToken);
+            var pointsByTrip = points.ToLookup(p => p.TripId);
 
             return dtos
-                .Select(d => visibilities.TryGetValue(d.Id, out var visibility)
-                    ? d with { PublicationVisibility = visibility.ToString().ToLowerInvariant() }
-                    : d)
+                .Select(d => d with
+                {
+                    PublicationVisibility = visibilities.TryGetValue(d.Id, out var visibility)
+                        ? visibility.ToString().ToLowerInvariant()
+                        : d.PublicationVisibility,
+                    Route = TripRouteBuilder.Build(
+                        pointsByTrip[d.Id],
+                        TripRouteBuilder.CountDays(d.StartDate, d.EndDate)),
+                })
                 .ToList();
         }
     }

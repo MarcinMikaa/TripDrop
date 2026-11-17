@@ -10,6 +10,7 @@ namespace TripDrop.Domain.Repositories
     public interface ITripPointRepository
     {
         Task<IEnumerable<TripPoint>> GetByTripIdAsync(Guid tripId, CancellationToken cancellationToken);
+        Task<IReadOnlyList<TripPoint>> GetByTripIdsAsync(IReadOnlyCollection<Guid> tripIds, CancellationToken cancellationToken);
         Task<TripPoint?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
         Task<IReadOnlyList<NearbyTripPoint>> GetNearestAsync(
             Guid tripId,

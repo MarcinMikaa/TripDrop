@@ -2,6 +2,13 @@
 {
     public record TripParticipantDto(Guid Id, string Username);
 
+    public record TripRouteDto(
+        int PointCount,
+        int UnassignedPointCount,
+        IReadOnlyList<int> DayPointCounts,
+        IReadOnlyList<double?[]> Preview
+    );
+
     public record TripDto(
         Guid Id,
         string Name,
@@ -15,7 +22,8 @@
         int ParticipantCount,
         IEnumerable<TripParticipantDto> Participants,
         DateTime? PlanLockedAt,
-        string? PublicationVisibility = null
+        string? PublicationVisibility = null,
+        TripRouteDto? Route = null
     );
 
     public record TripPlanLockDto(bool IsPlanLocked, DateTime? PlanLockedAt);
