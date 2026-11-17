@@ -1,0 +1,35 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.compact {
+  padding: 5px 10px;
+  font-size: 0.76rem;
+}
+
+.locked {
+  background: var(--obsidian);
+  color: var(--linen);
+}
+
+.published {
+  background: var(--amber);
+  color: var(--obsidian);
+}
+
+.icon {
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}

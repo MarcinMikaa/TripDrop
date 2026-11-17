@@ -4,18 +4,23 @@ import { tripService } from '../../services/TripService';
 import { friendshipService } from '../../services/FriendshipService';
 import { swalConfirmDelete, toastError, toastSuccess } from '../../utils/swal';
 import { colorForUser } from '../../utils/useColor';
-import { pluralize, DAY_FORMS } from '../../utils/pluralize';
+import { pluralize, DAY_FORMS, PLACE_FORMS } from '../../utils/pluralize';
+import { peopleOf, roleLabel } from '../../utils/tripPeople';
 import { countDays, describeWhen, formatRange, getTiming, toDateInput } from '../../components/TripPanel/tripForm';
+import AvatarStack from '../../components/AvatarStack/AvatarStack';
+import TripBadges from '../../components/TripBadges/TripBadges';
+import TripThumbnail from '../../components/TripThumbnail/TripThumbnail';
+import MapSketch from '../../components/TripThumbnail/MapSketch';
+import UpcomingTrip from '../../components/UpcomingTrip/UpcomingTrip';
+import { pickUpcomingTrip } from '../../components/UpcomingTrip/pickUpcomingTrip';
 import styles from './TripsPage.module.scss';
 
-const MAX_AVATARS = 4;
 const MAX_INVITES_SHOWN = 3;
 const SKELETON_CARDS = 3;
 const FRIEND_REQUESTS_EVENT = 'tripdrop:friend-requests-changed';
 
 const TRIP_FORMS = { one: 'wyprawa', few: 'wyprawy', many: 'wypraw', other: 'wyprawy' };
 const PUBLISHED_FORMS = { one: 'opublikowana', few: 'opublikowane', many: 'opublikowanych', other: 'opublikowanej' };
-const PEOPLE_FORMS = { one: 'osoba', few: 'osoby', many: 'osób', other: 'osoby' };
 
 const pluralRules = new Intl.PluralRules('pl-PL');
 const wordFor = (count, forms) => forms[pluralRules.select(count)] ?? forms.other;
@@ -35,9 +40,6 @@ const SORTS = [
 
 const PHASE_ORDER = { ongoing: 0, upcoming: 1, undated: 2, past: 3 };
 
-const ticketDay = new Intl.DateTimeFormat('pl-PL', { day: 'numeric', timeZone: 'UTC' });
-const ticketMonth = new Intl.DateTimeFormat('pl-PL', { month: 'short', timeZone: 'UTC' });
-
 const byNewest = (a, b) => new Date(b.trip.createdAt) - new Date(a.trip.createdAt);
 
 const bySoonest = (a, b) => {
@@ -54,89 +56,13 @@ const SORTERS = {
   name: (a, b) => a.trip.name.localeCompare(b.trip.name, 'pl'),
 };
 
-const isActivePhase = (phase) => phase === 'upcoming' || phase === 'ongoing';
-
-const peopleOf = (trip) => [
-  { id: trip.ownerId, username: trip.ownerUsername || 'organizator' },
-  ...(trip.participants ?? []),
-];
-
 const initialOf = (username) => (username || '?').trim().charAt(0).toUpperCase() || '?';
-
-const roleLabel = (trip) => {
-  if (!trip.isOwner) return `Organizuje @${trip.ownerUsername}`;
-  const others = trip.participants ?? [];
-  if (others.length === 0) return 'Tylko Ty';
-  if (others.length === 1) return `Ty i @${others[0].username}`;
-  return `Ty i ${pluralize(others.length, PEOPLE_FORMS)}`;
-};
-
-const datesOf = (trip) => ({ start: toDateInput(trip.startDate), end: toDateInput(trip.endDate) });
-
-const hashString = (value) => {
-  let hash = 2166136261;
-  for (let i = 0; i < value.length; i += 1) {
-    hash ^= value.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
-  }
-  return hash >>> 0;
-};
-
-const createRandom = (seed) => {
-  let state = seed || 1;
-  return () => {
-    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
-    return state / 4294967296;
-  };
-};
-
-const MapArt = ({ seed }) => {
-  const shapes = useMemo(() => {
-    const random = createRandom(hashString(String(seed)));
-    const hill = { cx: 120 + random() * 120, cy: 40 + random() * 60, rx: 24 + random() * 14, ry: 16 + random() * 10 };
-    const park = { cx: 30 + random() * 80, cy: 100 + random() * 40, rx: 30 + random() * 16, ry: 18 + random() * 10 };
-    const roadY = 70 + random() * 60;
-    const bend = random() * 50 - 25;
-    const road = `M-10 ${roadY} C 90 ${roadY + bend}, 200 ${roadY - bend}, 310 ${roadY + bend / 2}`;
-    const sideX = 60 + random() * 180;
-    const side = `M${sideX} -10 C ${sideX + 20} 50, ${sideX - 30} 110, ${sideX + 10} 170`;
-    const waterY = 20 + random() * 40;
-    const water = random() > 0.5 ? `M-10 ${waterY} C 80 ${waterY + 30}, 180 ${waterY - 20}, 310 ${waterY + 10}` : null;
-    return { hill, park, road, side, water };
-  }, [seed]);
-
-  const { hill, park, road, side, water } = shapes;
-
-  return (
-    <svg className={styles.mapArt} viewBox="0 0 300 160" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-      <rect width="300" height="160" className={styles.mapGround} />
-      <ellipse cx={park.cx} cy={park.cy} rx={park.rx} ry={park.ry} className={styles.mapPark} />
-      {water && <path d={water} className={styles.mapWater} />}
-      {[1, 1.5, 2.1, 2.8].map((scale) => (
-        <ellipse
-          key={scale}
-          cx={hill.cx}
-          cy={hill.cy}
-          rx={hill.rx * scale}
-          ry={hill.ry * scale}
-          className={styles.mapContour}
-        />
-      ))}
-      <path d={side} className={styles.mapRoadSmall} />
-      <path d={road} className={styles.mapRoad} />
-    </svg>
-  );
-};
 
 const ICON = {
   arrow: 'M5 12h14M12 5l7 7-7 7',
   plus: 'M12 5v14M5 12h14',
   pencil: 'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z',
   calendar: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
-  lock: 'M5 11h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2zM7 11V7a5 5 0 0 1 10 0v4',
-  globe:
-    'M12 2a10 10 0 1 0 0 20 10 10 0 1 0 0-20zM2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z',
-  link: 'M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71',
 };
 
 const Icon = ({ name, size = 16 }) => (
@@ -145,134 +71,31 @@ const Icon = ({ name, size = 16 }) => (
   </svg>
 );
 
-const AvatarStack = ({ people, large = false }) => {
-  const shown = people.slice(0, MAX_AVATARS);
-  const extra = people.length - shown.length;
-
-  return (
-    <div
-      className={`${styles.avatars} ${large ? styles.avatarsLarge : ''}`}
-      role="img"
-      aria-label={`Uczestnicy: ${people.map((p) => `@${p.username}`).join(', ')}`}>
-      {shown.map((person) => (
-        <span key={person.id} className={styles.avatar} style={{ background: colorForUser(person.id) }}>
-          {initialOf(person.username)}
-        </span>
-      ))}
-      {extra > 0 && <span className={`${styles.avatar} ${styles.avatarMore}`}>+{extra}</span>}
-    </div>
-  );
-};
-
-const TripBadges = ({ trip }) => (
-  <>
-    {trip.planLockedAt && (
-      <span className={`${styles.badge} ${styles.badgeLocked}`}>
-        <Icon name="lock" size={13} />
-        Plan zamknięty
-      </span>
-    )}
-    {trip.publicationVisibility && (
-      <span className={`${styles.badge} ${styles.badgePublished}`}>
-        <Icon name={trip.publicationVisibility === 'public' ? 'globe' : 'link'} size={13} />
-        {trip.publicationVisibility === 'public' ? 'Opublikowana' : 'Przez link'}
-      </span>
-    )}
-  </>
-);
-
-const TicketPart = ({ time, light = false }) => (
-  <span className={`${styles.ticketPart} ${light ? styles.ticketPartLight : ''}`}>
-    <span className={styles.ticketMonth}>{ticketMonth.format(new Date(time))}</span>
-    <span className={styles.ticketDay}>{ticketDay.format(new Date(time))}</span>
-  </span>
-);
-
-const Ticket = ({ timing }) => (
-  <div className={styles.ticket} aria-hidden="true">
-    <TicketPart time={timing.start} />
-    {timing.end !== timing.start && (
-      <>
-        <span className={styles.ticketArrow}>
-          <Icon name="arrow" />
-        </span>
-        <TicketPart time={timing.end} light />
-      </>
-    )}
-  </div>
-);
-
-const FeaturedTrip = ({ trip, timing }) => {
-  const { start, end } = datesOf(trip);
-  const days = countDays(start, end);
-  const people = peopleOf(trip);
-
-  return (
-    <article className={styles.featured}>
-      <div className={styles.featuredMap}>
-        <MapArt seed={trip.id} />
-        {timing.start !== null && <Ticket timing={timing} />}
-      </div>
-
-      <div className={styles.featuredBody}>
-        <div className={styles.labels}>
-          <span className={styles.eyebrow}>{timing.phase === 'ongoing' ? 'Trwa teraz' : 'Najbliższa wyprawa'}</span>
-          {timing.phase === 'upcoming' && <span className={styles.countdown}>{describeWhen(start, end)}</span>}
-          <TripBadges trip={trip} />
-        </div>
-
-        <div className={styles.featuredHeading}>
-          <h2 className={styles.featuredTitle}>
-            <Link to={`/planner/${trip.id}`} className={styles.titleLink}>
-              {trip.name}
-            </Link>
-          </h2>
-          <p className={styles.metaRow}>
-            <span>{formatRange(start, end) || 'Daty do ustalenia'}</span>
-            {days > 0 && <span>{pluralize(days, DAY_FORMS)}</span>}
-            <span>{pluralize(people.length, PEOPLE_FORMS)}</span>
-          </p>
-        </div>
-
-        {trip.description && <p className={styles.featuredDesc}>{trip.description}</p>}
-
-        <div className={styles.featuredFooter}>
-          <div className={styles.people}>
-            <AvatarStack people={people} large />
-            <span className={styles.peopleLabel}>{roleLabel(trip)}</span>
-          </div>
-          <div className={styles.featuredActions}>
-            <Link to={`/trips/${trip.id}/manage`} className={styles.ghostBtn}>
-              Zarządzaj
-            </Link>
-            <Link to={`/planner/${trip.id}`} className={styles.primaryBtn}>
-              Otwórz planer
-              <Icon name="arrow" size={17} />
-            </Link>
-          </div>
-        </div>
-      </div>
-    </article>
-  );
+const pointsLabel = (route) => {
+  if (!route) return null;
+  return route.pointCount > 0 ? pluralize(route.pointCount, PLACE_FORMS) : 'Bez punktów';
 };
 
 const TripCard = ({ trip, timing }) => {
-  const { start, end } = datesOf(trip);
+  const start = toDateInput(trip.startDate);
+  const end = toDateInput(trip.endDate);
   const days = countDays(start, end);
-  const people = peopleOf(trip);
   const isPast = timing.phase === 'past';
+  const points = pointsLabel(trip.route);
 
   return (
     <article className={`${styles.card} ${isPast ? styles.cardPast : ''}`}>
       <div className={styles.cardMap}>
-        <MapArt seed={trip.id} />
-        <div className={styles.mapBadges}>
-          <TripBadges trip={trip} />
+        <TripThumbnail trip={trip} className={styles.thumb} />
+        <div className={styles.mapOverlay}>
+          <span className={styles.dateChip}>
+            <Icon name="calendar" size={13} />
+            {formatRange(start, end) || 'Bez dat'}
+          </span>
+          <span className={styles.mapBadges}>
+            <TripBadges trip={trip} compact />
+          </span>
         </div>
-        <span className={styles.dateChip}>
-          <Icon name="calendar" size={13} />
-          {formatRange(start, end) || 'Bez dat'}
-        </span>
       </div>
 
       <div className={styles.cardBody}>
@@ -283,13 +106,13 @@ const TripCard = ({ trip, timing }) => {
           </Link>
         </h3>
         <p className={styles.metaRow}>
+          {points && <span>{points}</span>}
           <span>{days > 0 ? pluralize(days, DAY_FORMS) : 'Daty do ustalenia'}</span>
-          <span>{pluralize(people.length, PEOPLE_FORMS)}</span>
         </p>
 
         <div className={styles.cardFooter}>
           <div className={styles.people}>
-            <AvatarStack people={people} />
+            <AvatarStack people={peopleOf(trip)} />
             <span className={styles.peopleLabel}>{roleLabel(trip)}</span>
           </div>
           <Link
@@ -321,7 +144,7 @@ const InvitesPanel = ({ invites, busyIds, onAnswer }) => (
           <li key={invite.id} className={styles.invite}>
             <div className={styles.inviteWho}>
               <span
-                className={`${styles.avatar} ${styles.avatarMedium}`}
+                className={styles.inviteAvatar}
                 style={{ background: colorForUser(invite.requester?.id) }}
                 aria-hidden="true">
                 {initialOf(username)}
@@ -434,9 +257,8 @@ const TripsPage = () => {
 
   const activeFilter = FILTERS.find((f) => f.key === filter) ?? FILTERS[0];
   const visible = items.filter((item) => activeFilter.match(item.trip));
-  const nearest = [...visible].sort(bySoonest)[0];
-  const featured = nearest && isActivePhase(nearest.timing.phase) ? nearest : null;
-  const rest = visible.filter((item) => item !== featured).sort(SORTERS[sort]);
+  const featured = pickUpcomingTrip(visible.map((item) => item.trip));
+  const rest = visible.filter((item) => item.trip !== featured).sort(SORTERS[sort]);
 
   const handleInviteAnswer = async (invite, action) => {
     const username = invite.requester?.username ?? 'nieznany';
@@ -564,7 +386,7 @@ const TripsPage = () => {
           <div className={styles.columns}>
             <div className={styles.emptyState}>
               <div className={styles.emptyMap}>
-                <MapArt seed="pusta-mapa" />
+                <MapSketch seed="pusta-mapa" />
               </div>
               <div className={styles.emptyBody}>
                 <h2 className={styles.emptyTitle}>Mapa czeka na pierwszą trasę</h2>
@@ -588,7 +410,7 @@ const TripsPage = () => {
 
         {isReady && trips.length > 0 && (
           <>
-            {featured && <FeaturedTrip trip={featured.trip} timing={featured.timing} />}
+            {featured && <UpcomingTrip trip={featured} />}
 
             <div className={styles.columns}>
               <section

@@ -282,117 +282,6 @@
   gap: 48px;
 }
 
-.mapArt {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  transition: opacity 0.25s ease;
-}
-
-.mapGround {
-  fill: #ece7df;
-}
-
-.mapPark {
-  fill: #e2e6d8;
-}
-
-.mapWater {
-  fill: none;
-  stroke: #d7ddd8;
-  stroke-width: 14;
-  stroke-linecap: round;
-}
-
-.mapContour {
-  fill: none;
-  stroke: #d6cec1;
-  stroke-width: 1.2;
-}
-
-.mapRoad,
-.mapRoadSmall {
-  fill: none;
-  stroke: #fbf9f6;
-  stroke-linecap: round;
-}
-
-.mapRoad {
-  stroke-width: 5;
-}
-
-.mapRoadSmall {
-  stroke-width: 3;
-}
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.badgeLocked {
-  background: var(--obsidian);
-  color: var(--linen);
-}
-
-.badgePublished {
-  background: var(--amber);
-  color: var(--obsidian);
-}
-
-.avatars {
-  display: flex;
-  flex-shrink: 0;
-}
-
-.avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  flex-shrink: 0;
-  box-sizing: border-box;
-  border: 2px solid #fbf9f6;
-  border-radius: 50%;
-  color: #fff;
-  font-size: 0.75rem;
-  font-weight: 700;
-
-  & + & {
-    margin-left: -8px;
-  }
-}
-
-.avatarsLarge .avatar {
-  width: 36px;
-  height: 36px;
-  font-size: 0.9rem;
-
-  & + .avatar {
-    margin-left: -10px;
-  }
-}
-
-.avatarMore {
-  background: var(--stone);
-  color: var(--text-muted);
-}
-
-.avatarMedium {
-  width: 38px;
-  height: 38px;
-  border: none;
-  font-size: 0.95rem;
-}
-
 .people {
   display: flex;
   align-items: center;
@@ -421,178 +310,6 @@
     padding-left: 12px;
     border-left: 1px solid #d3cbbf;
   }
-}
-
-.featured {
-  display: flex;
-  flex-wrap: wrap;
-  overflow: hidden;
-  border: 1px solid #ddd6ca;
-  border-radius: 26px;
-  background: #fbf9f6;
-  box-shadow:
-    0 1px 0 #fff inset,
-    0 10px 30px rgba(10, 10, 10, 0.05);
-  animation: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) 0.08s both;
-}
-
-.featuredMap {
-  position: relative;
-  flex: 1 1 500px;
-  min-width: 0;
-  min-height: 25rem;
-  background: #ece7df;
-}
-
-.ticket {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  display: flex;
-  align-items: stretch;
-  overflow: hidden;
-  border-radius: 14px;
-  box-shadow: 0 10px 26px rgba(10, 10, 10, 0.18);
-}
-
-.ticketPart {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  min-width: 64px;
-  padding: 10px 14px;
-  box-sizing: border-box;
-  background: var(--obsidian);
-  color: var(--linen);
-  line-height: 1;
-}
-
-.ticketPartLight {
-  background: #fbf9f6;
-  color: var(--obsidian);
-
-  .ticketMonth {
-    color: #7d5a2c;
-  }
-}
-
-.ticketMonth {
-  @extend %label-caps;
-  color: var(--amber);
-  font-size: 0.7rem;
-  letter-spacing: 0.16em;
-}
-
-.ticketDay {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 2rem;
-  font-weight: 600;
-}
-
-.ticketArrow {
-  display: flex;
-  align-items: center;
-  padding: 0 6px;
-  background: #fbf9f6;
-  color: #8b8378;
-}
-
-.featuredBody {
-  flex: 1 1 440px;
-  min-width: 0;
-  padding: 36px 40px;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 22px;
-}
-
-.labels {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 12px;
-}
-
-.eyebrow {
-  @extend %label-caps;
-  color: #7d5a2c;
-  font-size: 0.78rem;
-  letter-spacing: 0.14em;
-}
-
-.countdown {
-  padding: 3px 12px;
-  border: 1px solid #e0cfb4;
-  border-radius: 999px;
-  background: #efe5d6;
-  color: var(--obsidian);
-  font-size: 0.82rem;
-  font-weight: 600;
-}
-
-.featuredHeading {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.featuredTitle {
-  margin: 0;
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: clamp(2.1rem, 3.4vw, 3rem);
-  font-weight: 600;
-  line-height: 1.05;
-  letter-spacing: -0.01em;
-  overflow-wrap: anywhere;
-}
-
-.titleLink {
-  color: var(--obsidian);
-  text-decoration: none;
-  text-decoration-color: var(--amber);
-  text-decoration-thickness: 2px;
-  text-underline-offset: 6px;
-
-  &:hover {
-    color: var(--obsidian);
-    text-decoration-line: underline;
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--obsidian);
-    outline-offset: 4px;
-    border-radius: 4px;
-  }
-}
-
-.featuredDesc {
-  display: -webkit-box;
-  margin: 0;
-  overflow: hidden;
-  color: var(--text-muted);
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-}
-
-.featuredFooter {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding-top: 20px;
-  border-top: 1px solid #ebe5dc;
-}
-
-.featuredActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
 }
 
 .columns {
@@ -700,51 +417,57 @@
   }
 }
 
-.cardPast .mapArt {
-  opacity: 0.6;
-}
-
 .cardMap {
   position: relative;
-  height: 10rem;
+  aspect-ratio: 16 / 9;
   flex-shrink: 0;
+  overflow: hidden;
   background: #ece7df;
 }
 
-.mapBadges {
+.thumb {
+  transition: opacity 0.25s ease;
+}
+
+.cardPast .thumb {
+  opacity: 0.6;
+}
+
+.mapOverlay {
   position: absolute;
   top: 12px;
   right: 12px;
   left: 12px;
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 6px;
   pointer-events: none;
-
-  .badge {
-    padding: 5px 10px;
-    font-size: 0.76rem;
-  }
 }
 
 .dateChip {
-  position: absolute;
-  bottom: 12px;
-  left: 12px;
-  max-width: calc(100% - 24px);
   display: inline-flex;
   align-items: center;
   gap: 7px;
+  max-width: 100%;
   padding: 5px 12px;
   box-sizing: border-box;
   border-radius: 999px;
   background: rgba(251, 249, 246, 0.95);
+  box-shadow: 0 2px 8px rgba(10, 10, 10, 0.08);
   color: var(--obsidian);
   font-size: 0.8rem;
   font-weight: 600;
   white-space: nowrap;
-  pointer-events: none;
+}
+
+.mapBadges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-left: auto;
 }
 
 .cardBody {
@@ -961,6 +684,19 @@
   min-width: 0;
 }
 
+.inviteAvatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
 .inviteText {
   display: flex;
   flex-direction: column;
@@ -1169,11 +905,6 @@
 }
 
 @media (max-width: 900px) {
-  .featuredMap {
-    min-height: 18rem;
-  }
-
-  .featuredBody,
   .emptyBody {
     padding: 28px 24px;
   }
@@ -1202,15 +933,6 @@
     gap: 32px;
   }
 
-  .featuredMap {
-    min-height: 14rem;
-  }
-
-  .featuredActions,
-  .featuredActions a {
-    flex: 1 1 auto;
-  }
-
   .skeletonFeatured {
     height: 30rem;
   }
@@ -1218,7 +940,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .heroInner,
-  .featured,
   .emptyState,
   .trail,
   .skeleton {
@@ -1229,7 +950,7 @@
   .newRow,
   .newRowIcon,
   .iconBtn,
-  .mapArt {
+  .thumb {
     transition: none;
   }
 

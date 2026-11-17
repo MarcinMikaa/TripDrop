@@ -1,0 +1,408 @@
+%button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 22px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+
+  &:focus-visible {
+    outline: 2px solid var(--obsidian);
+    outline-offset: 2px;
+  }
+}
+
+%caps {
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.card {
+  display: flex;
+  flex-wrap: wrap;
+  overflow: hidden;
+  border: 1px solid #ddd6ca;
+  border-radius: 26px;
+  background: #fbf9f6;
+  box-shadow:
+    0 1px 0 #fff inset,
+    0 10px 30px rgba(10, 10, 10, 0.05);
+  animation: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) 0.08s both;
+}
+
+.icon {
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.map {
+  position: relative;
+  flex: 1 1 500px;
+  min-width: 0;
+  min-height: 25rem;
+  background: #ece7df;
+}
+
+.ticket {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 1;
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+  border-radius: 14px;
+  box-shadow: 0 10px 26px rgba(10, 10, 10, 0.18);
+}
+
+.ticketPart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 64px;
+  padding: 10px 14px;
+  box-sizing: border-box;
+  background: var(--obsidian);
+  color: var(--linen);
+  line-height: 1;
+}
+
+.ticketPartLight {
+  background: #fbf9f6;
+  color: var(--obsidian);
+
+  .ticketMonth {
+    color: #7d5a2c;
+  }
+}
+
+.ticketMonth {
+  @extend %caps;
+  color: var(--amber);
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+}
+
+.ticketDay {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.ticketArrow {
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  background: #fbf9f6;
+  color: #8b8378;
+}
+
+.body {
+  flex: 1 1 440px;
+  min-width: 0;
+  padding: 36px 40px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 22px;
+}
+
+.labels {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+}
+
+.eyebrow {
+  @extend %caps;
+  color: #7d5a2c;
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+}
+
+.countdown {
+  padding: 3px 12px;
+  border: 1px solid #e0cfb4;
+  border-radius: 999px;
+  background: #efe5d6;
+  color: var(--obsidian);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.title {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(2.1rem, 3.4vw, 3rem);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+
+.titleLink {
+  color: var(--obsidian);
+  text-decoration: none;
+  text-decoration-color: var(--amber);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 6px;
+
+  &:hover {
+    color: var(--obsidian);
+    text-decoration-line: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--obsidian);
+    outline-offset: 4px;
+    border-radius: 4px;
+  }
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 0;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+
+  span + span {
+    margin-left: 12px;
+    padding-left: 12px;
+    border-left: 1px solid #d3cbbf;
+  }
+}
+
+.breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.days {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.day {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.dayBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.dayLabel {
+  flex-shrink: 0;
+  font-weight: 600;
+}
+
+.dayLeader {
+  flex: 1;
+  min-width: 16px;
+  border-bottom: 2px dotted #cfc6b8;
+  transform: translateY(-3px);
+}
+
+.dayCount {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+
+.dayCountEmpty {
+  color: #8b8378;
+  font-style: italic;
+}
+
+.breakdownNote {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 0;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.86rem;
+
+  span + span {
+    margin-left: 12px;
+    padding-left: 12px;
+    border-left: 1px solid #d3cbbf;
+  }
+}
+
+.hint {
+  margin: 0;
+  padding: 14px 16px;
+  border: 1.5px dashed #cfc6b8;
+  border-radius: 14px;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+
+.inlineLink {
+  color: #7d5a2c;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+
+  &:hover {
+    color: var(--obsidian);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--obsidian);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+.description {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 20px;
+  border-top: 1px solid #ebe5dc;
+}
+
+.people {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.peopleLabel {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.primaryBtn {
+  @extend %button;
+  border: none;
+  background: var(--obsidian);
+  color: var(--linen);
+
+  &:hover {
+    background: #2a2622;
+    color: var(--linen);
+  }
+}
+
+.ghostBtn {
+  @extend %button;
+  padding: 0 20px;
+  border: 1.5px solid #cfc6b8;
+  background: transparent;
+  color: var(--obsidian);
+
+  &:hover {
+    border-color: var(--obsidian);
+    background: #efe9df;
+    color: var(--obsidian);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .map {
+    min-height: 18rem;
+  }
+
+  .body {
+    padding: 28px 24px;
+  }
+}
+
+@media (max-width: 640px) {
+  .map {
+    min-height: 15rem;
+  }
+
+  .actions,
+  .actions a {
+    flex: 1 1 auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    animation: none;
+  }
+
+  .primaryBtn,
+  .ghostBtn {
+    transition: none;
+  }
+}

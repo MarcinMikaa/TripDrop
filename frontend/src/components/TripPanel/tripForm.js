@@ -20,7 +20,7 @@ const dayFormatter = new Intl.DateTimeFormat('pl-PL', {
 });
 
 const parseDay = (value) => {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || '');
+  const match = /^(\d{4})-(\d{2})-(\d{2})(?:$|T)/.exec(value ? String(value) : '');
   return match ? Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])) : null;
 };
 

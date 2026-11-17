@@ -94,7 +94,9 @@ const PointsOverview = ({ trip }) => {
         unassigned.push(point);
       }
     });
-    byDay.forEach((group) => group.sort((a, b) => a.position - b.position));
+    const byPosition = (a, b) => (a.position ?? 0) - (b.position ?? 0);
+    byDay.forEach((group) => group.sort(byPosition));
+    unassigned.sort(byPosition);
     return { byDay, unassigned };
   }, [days, state.points]);
 
