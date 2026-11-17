@@ -82,24 +82,27 @@ const TripCard = ({ trip, timing }) => {
   const days = countDays(start, end);
   const isPast = timing.phase === 'past';
   const points = pointsLabel(trip.route);
+  const range = formatRange(start, end);
 
   return (
     <article className={`${styles.card} ${isPast ? styles.cardPast : ''}`}>
       <div className={styles.cardMap}>
         <TripThumbnail trip={trip} className={styles.thumb} />
-        <div className={styles.mapOverlay}>
-          <span className={styles.dateChip}>
-            <Icon name="calendar" size={13} />
-            {formatRange(start, end) || 'Bez dat'}
-          </span>
-          <span className={styles.mapBadges}>
-            <TripBadges trip={trip} compact />
-          </span>
+        <div className={styles.mapBadges}>
+          <TripBadges trip={trip} compact />
         </div>
       </div>
 
       <div className={styles.cardBody}>
-        <span className={`${styles.when} ${isPast ? styles.whenPast : ''}`}>{describeWhen(start, end)}</span>
+        <div className={styles.whenRow}>
+          <span className={`${styles.when} ${isPast ? styles.whenPast : ''}`}>{describeWhen(start, end)}</span>
+          {range && (
+            <span className={styles.dateText}>
+              <Icon name="calendar" size={13} />
+              {range}
+            </span>
+          )}
+        </div>
         <h3 className={styles.cardTitle}>
           <Link to={`/planner/${trip.id}`} className={styles.cardLink}>
             {trip.name}
@@ -113,7 +116,9 @@ const TripCard = ({ trip, timing }) => {
         <div className={styles.cardFooter}>
           <div className={styles.people}>
             <AvatarStack people={peopleOf(trip)} />
-            <span className={styles.peopleLabel}>{roleLabel(trip)}</span>
+            <span className={styles.peopleLabel} title={roleLabel(trip)}>
+              {trip.isOwner ? roleLabel(trip) : `od @${trip.ownerUsername}`}
+            </span>
           </div>
           <Link
             to={`/trips/${trip.id}/manage`}

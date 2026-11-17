@@ -433,41 +433,15 @@
   opacity: 0.6;
 }
 
-.mapOverlay {
+.mapBadges {
   position: absolute;
   top: 12px;
   right: 12px;
-  left: 12px;
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: flex-end;
   gap: 6px;
   pointer-events: none;
-}
-
-.dateChip {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  max-width: 100%;
-  padding: 5px 12px;
-  box-sizing: border-box;
-  border-radius: 999px;
-  background: rgba(251, 249, 246, 0.95);
-  box-shadow: 0 2px 8px rgba(10, 10, 10, 0.08);
-  color: var(--obsidian);
-  font-size: 0.8rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.mapBadges {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 6px;
-  margin-left: auto;
 }
 
 .cardBody {
@@ -480,6 +454,23 @@
   .metaRow {
     font-size: 0.88rem;
   }
+}
+
+.whenRow {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.dateText {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .when {

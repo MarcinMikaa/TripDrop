@@ -1,20 +1,24 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { exploreService } from '../../services/ExploreService';
-import useAuth from '../../hooks/useAuth';
-import { swalError, toastError } from '../../utils/swal';
+import { swalError } from '../../utils/swal';
 import { PUBLICATION_TAGS, PUBLICATION_TAG_LABELS } from '../../utils/publicationTags';
-import { pluralize, PLACE_FORMS, DAY_FORMS } from '../../utils/pluralize';
-import { formatDistance } from '../../utils/routeFormat';
+import { pluralize, DAY_FORMS } from '../../utils/pluralize';
+import { usePublicationVotes } from '../../hooks/usePublicationVotes';
 import RouteSilhouette from '../../components/RouteSilhouette/RouteSilhouette';
-import VoteButton from '../../components/VoteButton/VoteButton';
+import PublishedTripCard from '../../components/PublishedTrip/PublishedTripCard';
+import {
+  PublishedTripCopies,
+  PublishedTripMeta,
+  PublishedTripTags,
+  PublishedTripVotes,
+} from '../../components/PublishedTrip/PublishedTripParts';
 import styles from './ExplorePage.module.scss';
 
 const PAGE_SIZE = 24;
 const SEARCH_DEBOUNCE_MS = 400;
 const SKELETON_COUNT = 6;
-const MAX_CARD_TAGS = 3;
 
 const LENGTH_OPTIONS = [
   { value: '', label: 'Dowolna długość' },
@@ -25,7 +29,7 @@ const LENGTH_OPTIONS = [
 
 const SORT_OPTIONS = [
   { value: '', label: 'Najnowsze' },
-  { value: 'hot', label: 'Najwyżej oceniane' },
+  { value: 'hot', label: 'Najgorętsze' },
   { value: 'popular', label: 'Najczęściej kopiowane' },
 ];
 
@@ -53,11 +57,6 @@ const routesLabel = (count, hasMore) => {
   return hasMore ? `Ponad ${count} ${noun}` : `${count} ${noun}`;
 };
 
-const copiesLabel = (count) => {
-  if (!count) return 'jeszcze nie kopiowana';
-  return `skopiowano ${count} ${count === 1 ? 'raz' : 'razy'}`;
-};
-
 const FlameIcon = () => (
   <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
     <path
@@ -69,7 +68,7 @@ const FlameIcon = () => (
 
 const getFeaturedBadge = (sort, trip) => {
   if (sort === 'hot') {
-    return trip.voteCount > 0 ? { label: 'Najwyżej oceniana trasa', icon: <FlameIcon /> } : null;
+    return trip.voteCount > 0 ? { label: 'Najgorętsza trasa', icon: <FlameIcon /> } : null;
   }
   if (sort === 'popular') {
     return trip.copyCount > 0
@@ -77,38 +76,6 @@ const getFeaturedBadge = (sort, trip) => {
       : null;
   }
   return { label: 'Najnowsza trasa', icon: null };
-};
-
-const TripMeta = ({ trip, className = '' }) => {
-  const items = [
-    pluralize(trip.pointCount, PLACE_FORMS),
-    trip.totalDistanceM != null ? formatDistance(trip.totalDistanceM) : null,
-    trip.author ? `@${trip.author}` : null,
-  ].filter(Boolean);
-
-  return (
-    <p className={`${styles.meta} ${className}`}>
-      {items.map((item, index) => (
-        <span key={index}>{item}</span>
-      ))}
-    </p>
-  );
-};
-
-const TripTags = ({ tags }) => {
-  if (!tags?.length) return null;
-  const extra = tags.length - MAX_CARD_TAGS;
-
-  return (
-    <div className={styles.tagList}>
-      {tags.slice(0, MAX_CARD_TAGS).map((key) => (
-        <span key={key} className={styles.tagChip}>
-          {PUBLICATION_TAG_LABELS[key] ?? key}
-        </span>
-      ))}
-      {extra > 0 && <span className={styles.tagChip}>+{extra}</span>}
-    </div>
-  );
 };
 
 const FeaturedTrip = ({ trip, badge, votePending, onVote }) => (
@@ -130,50 +97,11 @@ const FeaturedTrip = ({ trip, badge, votePending, onVote }) => (
           {trip.title}
         </Link>
       </h3>
-      <TripMeta trip={trip} className={styles.featuredMeta} />
-      <TripTags tags={trip.tags} />
+      <PublishedTripMeta trip={trip} large />
+      <PublishedTripTags tags={trip.tags} />
       <div className={styles.featuredFooter}>
-        <span className={styles.copies}>
-          <FontAwesomeIcon icon="copy" aria-hidden="true" />
-          {copiesLabel(trip.copyCount)}
-        </span>
-        <div className={styles.voteSlot}>
-          <VoteButton count={trip.voteCount} voted={trip.hasVoted} pending={votePending} onClick={() => onVote(trip)} />
-        </div>
-      </div>
-    </div>
-  </article>
-);
-
-const TripCard = ({ trip, votePending, onVote }) => (
-  <article className={styles.card}>
-    <div className={styles.cardMap}>
-      <RouteSilhouette preview={trip.preview} className={styles.silhouette} label={`Szkic trasy: ${trip.title}`} />
-      <span className={styles.daysChip}>{pluralize(trip.dayCount, DAY_FORMS)}</span>
-    </div>
-    <div className={styles.cardBody}>
-      {trip.region && <span className={styles.region}>{trip.region}</span>}
-      <h3 className={styles.cardTitle}>
-        <Link to={`/explore/${trip.id}`} className={styles.cardLink}>
-          {trip.title}
-        </Link>
-      </h3>
-      <TripMeta trip={trip} />
-      <TripTags tags={trip.tags} />
-      <div className={styles.cardFooter}>
-        <span className={styles.copies}>
-          <FontAwesomeIcon icon="copy" aria-hidden="true" />
-          {copiesLabel(trip.copyCount)}
-        </span>
-        <div className={styles.voteSlot}>
-          <VoteButton
-            size="sm"
-            count={trip.voteCount}
-            voted={trip.hasVoted}
-            pending={votePending}
-            onClick={() => onVote(trip)}
-          />
-        </div>
+        <PublishedTripCopies count={trip.copyCount} />
+        <PublishedTripVotes trip={trip} pending={votePending} onVote={onVote} />
       </div>
     </div>
   </article>
@@ -181,9 +109,6 @@ const TripCard = ({ trip, votePending, onVote }) => (
 
 const ExplorePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { isAuthenticated } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
 
   const q = searchParams.get('q') ?? '';
   const tagsParam = searchParams.get('tags') ?? '';
@@ -197,7 +122,6 @@ const ExplorePage = () => {
   const [reloadToken, setReloadToken] = useState(0);
   const [result, setResult] = useState({ key: null, items: [], hasMore: false, error: null });
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [pendingVotes, setPendingVotes] = useState(() => new Set());
 
   const queryKey = makeKey(q, tagsParam, length, sort, reloadToken);
   const isLoading = result.key !== queryKey;
@@ -295,32 +219,7 @@ const ExplorePage = () => {
       items: prev.items.map((item) => (item.id === tripId ? { ...item, ...changes } : item)),
     }));
 
-  const handleVote = async (trip) => {
-    if (!isAuthenticated) {
-      navigate('/login', { state: { from: location.pathname + location.search } });
-      return;
-    }
-    if (pendingVotes.has(trip.id)) return;
-
-    const nextVoted = !trip.hasVoted;
-
-    updateItem(trip.id, { hasVoted: nextVoted, voteCount: trip.voteCount + (nextVoted ? 1 : -1) });
-    setPendingVotes((prev) => new Set(prev).add(trip.id));
-
-    try {
-      const saved = nextVoted ? await exploreService.vote(trip.id) : await exploreService.unvote(trip.id);
-      updateItem(trip.id, { hasVoted: saved.hasVoted, voteCount: saved.voteCount });
-    } catch (err) {
-      updateItem(trip.id, { hasVoted: trip.hasVoted, voteCount: trip.voteCount });
-      toastError(err.message);
-    } finally {
-      setPendingVotes((prev) => {
-        const next = new Set(prev);
-        next.delete(trip.id);
-        return next;
-      });
-    }
-  };
+  const { pendingVotes, toggleVote: handleVote } = usePublicationVotes(updateItem);
 
   const [featured, ...rest] = result.items;
   const featuredBadge = featured ? getFeaturedBadge(sort, featured) : null;
@@ -470,7 +369,12 @@ const ExplorePage = () => {
             {rest.length > 0 && (
               <div className={styles.grid}>
                 {rest.map((trip) => (
-                  <TripCard key={trip.id} trip={trip} votePending={pendingVotes.has(trip.id)} onVote={handleVote} />
+                  <PublishedTripCard
+                    key={trip.id}
+                    trip={trip}
+                    votePending={pendingVotes.has(trip.id)}
+                    onVote={handleVote}
+                  />
                 ))}
               </div>
             )}

@@ -1,0 +1,92 @@
+.section {
+  background: var(--stone);
+}
+
+.inner {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 88px 32px 96px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.title {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(2rem, 3.4vw, 3rem);
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--obsidian);
+}
+
+.allLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  color: var(--obsidian);
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover {
+    color: #7d5a2c;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--obsidian);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+}
+
+.icon {
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+  gap: 24px;
+}
+
+.skeleton {
+  min-height: 340px;
+  border-radius: 22px;
+  background: linear-gradient(90deg, #ece7df 0%, #f6f3ee 50%, #ece7df 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s linear infinite;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .inner {
+    padding: 56px 16px 64px;
+    gap: 28px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}

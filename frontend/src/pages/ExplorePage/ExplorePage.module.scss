@@ -357,51 +357,6 @@
   text-transform: uppercase;
 }
 
-.meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 0;
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 0.9rem;
-
-  span + span {
-    margin-left: 12px;
-    padding-left: 12px;
-    border-left: 1px solid #d3cbbf;
-  }
-}
-
-.tagList {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.tagChip {
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: #efe5d6;
-  color: #7d5a2c;
-  font-size: 0.78rem;
-  font-weight: 600;
-}
-
-.copies {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  color: var(--text-muted);
-  font-size: 0.86rem;
-}
-
-.voteSlot {
-  position: relative;
-  z-index: 1;
-  flex-shrink: 0;
-}
-
 .cardLink {
   color: var(--obsidian);
   text-decoration: none;
@@ -421,8 +376,7 @@
   }
 }
 
-.featured:has(.cardLink:focus-visible),
-.card:has(.cardLink:focus-visible) {
+.featured:has(.cardLink:focus-visible) {
   outline: 3px solid var(--amber);
   outline-offset: 2px;
 }
@@ -496,10 +450,6 @@
   overflow-wrap: anywhere;
 }
 
-.featuredMeta {
-  font-size: 1rem;
-}
-
 .featuredFooter {
   display: flex;
   align-items: center;
@@ -514,63 +464,6 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
   gap: 24px;
-}
-
-.card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  overflow: hidden;
-  border: 1px solid #ddd6ca;
-  border-radius: 22px;
-  background: #fbf9f6;
-  transition:
-    transform 0.25s ease,
-    box-shadow 0.25s ease,
-    border-color 0.25s ease;
-
-  &:hover {
-    transform: translateY(-4px);
-    border-color: var(--amber);
-    box-shadow: 0 18px 40px rgba(10, 10, 10, 0.12);
-  }
-}
-
-.cardMap {
-  position: relative;
-  aspect-ratio: 16 / 9;
-  background: #ece7df;
-}
-
-.cardBody {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 10px;
-  padding: 20px 22px;
-}
-
-.cardTitle {
-  display: -webkit-box;
-  margin: 0;
-  overflow: hidden;
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 1.35rem;
-  font-weight: 600;
-  line-height: 1.2;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
-.cardFooter {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: auto;
-  padding-top: 12px;
-  border-top: 1px solid #ebe5dc;
 }
 
 .loading {
@@ -714,8 +607,7 @@
     flex: 1 1 auto;
   }
 
-  .featuredFooter,
-  .cardFooter {
+  .featuredFooter {
     flex-wrap: wrap;
   }
 }
@@ -728,8 +620,7 @@
     animation: none;
   }
 
-  .featured,
-  .card {
+  .featured {
     transition: none;
 
     &:hover {
